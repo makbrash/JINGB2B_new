@@ -28,12 +28,20 @@ if (!isset($data['action'])) {
     die(json_encode(["error" => "Dati mancanti", "received" => $data]));
 }
 
-if(isset($data['apicall']) &&  $data['apicall'] == 'cliente'){
-	$apiUrl = 'manage_clienti.php';
-}else{
-	$apiUrl = 'manage_request.php';
+if(isset($data['apicall'])) {
+    switch($data['apicall']) {
+        case 'cliente':
+            $apiUrl = 'manage_clienti.php';
+            break;
+        case 'negozio': 
+            $apiUrl = 'manage_negozi.php';
+            break;
+        default:
+            $apiUrl = 'manage_request.php';
+    }
+} else {
+    $apiUrl = 'manage_request.php';
 }
-	
 
 // **Costruisce il percorso relativo**
 $apiUrl = $_SERVER['REQUEST_SCHEME'] . "://" . $_SERVER['HTTP_HOST'] . "/api/" . $apiUrl;
@@ -55,6 +63,7 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlError = curl_error($ch);
 curl_close($ch);
+
 
 
 // Debug: Controlla eventuali errori cURL
