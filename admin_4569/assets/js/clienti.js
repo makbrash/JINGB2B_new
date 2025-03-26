@@ -23,6 +23,9 @@ let APP_STATE = {
 
 // Inizializzazione al caricamento della pagina
 document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungiamo un controllo per verificare se la pagina è già stata caricata
+    checkAppState();
+    
     // Carica i dati iniziali
     loadClienti();
     loadCataloghi();
@@ -42,6 +45,14 @@ document.addEventListener('DOMContentLoaded', function() {
         loadClienti();
     });
     
+    // Validazione campo CAP (solo numeri)
+    document.getElementById('cap').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        if (this.value.length > 5) {
+            this.value = this.value.slice(0, 5);
+        }
+    });
+    
     // Gestione eventi form
     document.getElementById('btn-new-cliente').addEventListener('click', resetForm);
     document.getElementById('btn-save-cliente').addEventListener('click', saveCliente);
@@ -54,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('preview-avatar').src = '/'+e.target.result;
+                document.getElementById('preview-avatar').src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -62,9 +73,41 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Verifica lo stato dell'applicazione e risolve eventuali problemi
+ */
+function checkAppState() {
+    console.log('Verifica stato applicazione...');
+    
+    // Verifica se il container delle card esiste
+    const container = document.getElementById('cliente-cards-container');
+    if (!container) {
+        console.error('Container cards non trovato!');
+        return;
+    }
+    
+    // Imposta un timer di controllo per verificare il caricamento dei dati
+    setTimeout(() => {
+        // Se dopo 5 secondi il container è vuoto o contiene solo il loader, riprova a caricare
+        const content = container.innerHTML.trim();
+        if (content === '' || content.includes('spinner-border')) {
+            console.warn('Possibile problema di caricamento rilevato, riprovo...');
+            loadClienti();
+        }
+    }, 5000);
+    
+    // Aggiungi un gestore di eventi per ricaricare i dati quando la finestra torna in focus
+    window.addEventListener('focus', () => {
+        console.log('Finestra tornata in focus, ricarico i dati...');
+        loadClienti();
+    });
+}
+
+/**
  * Carica la lista dei clienti via AJAX
  */
 function loadClienti() {
+    console.log('Caricamento clienti...');
+    
     const container = document.getElementById('cliente-cards-container');
     container.innerHTML = `
         <div class="col-12 text-center py-5">
@@ -75,7 +118,7 @@ function loadClienti() {
     
     // Prepara i parametri per la richiesta
     const params = {
-		apicall: 'cliente',
+        apicall: 'cliente',
         action: 'list_clienti',
         page: APP_STATE.currentPage,
         per_page: CONFIG.perPage,
@@ -86,6 +129,8 @@ function loadClienti() {
     // Effettua la chiamata AJAX
     fetchAPI(params)
         .then(response => {
+            console.log('Risposta loadClienti ricevuta:', response);
+            
             if (response.success) {
                 APP_STATE.totalItems = response.total;
                 APP_STATE.totalPages = Math.ceil(APP_STATE.totalItems / CONFIG.perPage);
@@ -95,11 +140,13 @@ function loadClienti() {
                 
                 // Popola le card dei clienti
                 renderClienteCards(response.data);
+                console.log('Rendering clienti completato, totale:', response.data.length);
             } else {
                 showError('Errore nel caricamento dei clienti', response.error);
             }
         })
         .catch(error => {
+            console.error('Errore in loadClienti:', error);
             showError('Errore di comunicazione con il server', error);
         });
 }
@@ -140,8 +187,30 @@ function loadCataloghi() {
  * @param {Array} clienti - Array di oggetti cliente
  */
 function renderClienteCards(clienti) {
+    console.log('Rendering clienti:', clienti);
+    
     const container = document.getElementById('cliente-cards-container');
+    if (!container) {
+        console.error('Container delle card non trovato!');
+        return;
+    }
+    
+    // Pulisci il container
     container.innerHTML = '';
+    
+    // Verifica che clienti sia un array valido
+    if (!Array.isArray(clienti)) {
+        console.error('Errore: i dati dei clienti non sono in formato array', clienti);
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="alert alert-danger">
+                    <i class="ti ti-alert-circle me-2"></i>
+                    Errore nel formato dei dati. Ricarica la pagina.
+                </div>
+            </div>
+        `;
+        return;
+    }
     
     if (clienti.length === 0) {
         container.innerHTML = `
@@ -177,7 +246,11 @@ function renderClienteCards(clienti) {
         
         // Imposta avatar
         const avatarEl = card.querySelector('[data-avatar]');
-        avatarEl.style.backgroundImage = `url('/${cliente.avatar || CONFIG.defaultAvatar}')`;
+        if (cliente.avatar) {
+            avatarEl.style.backgroundImage = `url('/${cliente.avatar}')`;
+        } else {
+            avatarEl.style.backgroundImage = `url('${CONFIG.defaultAvatar}')`;
+        }
         
         // Imposta informazioni generali
         card.querySelector('[data-nome-negozio]').textContent = cliente.nome_negozio;
@@ -201,6 +274,16 @@ function renderClienteCards(clienti) {
         emailEl.href = `mailto:${cliente.email}`;
         
         card.querySelector('[data-indirizzo]').textContent = cliente.indirizzo || 'Non specificato';
+        
+        // Formatta provincia (sigla -> nome completo)
+        const provinciaNome = getProvinciaNome(cliente.provincia);
+        card.querySelector('[data-provincia]').textContent = provinciaNome || 'Non specificata';
+        card.querySelector('[data-cap]').textContent = cliente.cap || 'Non specificato';
+        
+        // Nuovi campi
+        card.querySelector('[data-partita-iva]').textContent = cliente.partita_iva || 'Non specificato';
+        card.querySelector('[data-codice-sdi]').textContent = cliente.codice_sdi || 'Non specificato';
+        card.querySelector('[data-orario-scarico]').textContent = cliente.orario_scarico || 'Non specificato';
         
         const whatsappEl = card.querySelector('[data-whatsapp]');
         if (cliente.whatsapp) {
@@ -231,7 +314,18 @@ function renderClienteCards(clienti) {
         
         const btnToggleStatus = card.querySelector('[data-btn-toggle-status]');
         const toggleLabel = card.querySelector('[data-toggle-label]');
-        toggleLabel.textContent = cliente.attivo ? 'Sospendi' : 'Attiva';
+        
+        // Imposta colore e testo in base allo stato attuale
+        if (cliente.attivo) {
+            // Se attivo, mostra pulsante rosso per sospendere
+            btnToggleStatus.className = 'btn btn-outline-danger btn-sm';
+            toggleLabel.textContent = 'Sospendi';
+        } else {
+            // Se sospeso, mostra pulsante verde per attivare
+            btnToggleStatus.className = 'btn btn-outline-success btn-sm';
+            toggleLabel.textContent = 'Attiva';
+        }
+        
         btnToggleStatus.addEventListener('click', () => toggleClienteStatus(cliente.id, !cliente.attivo));
         
         const btnResetPassword = card.querySelector('[data-btn-reset-password]');
@@ -409,7 +503,12 @@ function editCliente(clienteId) {
             document.getElementById('email').value = cliente.email;
             document.getElementById('whatsapp').value = cliente.whatsapp || '';
             document.getElementById('indirizzo').value = cliente.indirizzo || '';
-            document.getElementById('password').value = ''; // Non mostriamo la password esistente
+            document.getElementById('provincia').value = cliente.provincia || '';
+            document.getElementById('cap').value = cliente.cap || '';
+            document.getElementById('partita-iva').value = cliente.partita_iva || '';
+            document.getElementById('codice-sdi').value = cliente.codice_sdi || '';
+            document.getElementById('orario-scarico').value = cliente.orario_scarico || '';
+            //document.getElementById('password').value = ''; // Non mostriamo la password esistente
             document.getElementById('data-apertura').value = cliente.data_apertura;
             document.getElementById('tipo-pagamento').value = cliente.tipo_pagamento;
             document.getElementById('cliente-attivo').checked = cliente.attivo == 1;
@@ -417,7 +516,7 @@ function editCliente(clienteId) {
             
             // Imposta avatar
             if (cliente.avatar) {
-                document.getElementById('preview-avatar').src = '/'+cliente.avatar;
+                document.getElementById('preview-avatar').src = '/' + cliente.avatar;
             } else {
                 document.getElementById('preview-avatar').src = CONFIG.defaultAvatar;
             }
@@ -455,6 +554,14 @@ function saveCliente() {
     const form = document.getElementById('form-cliente');
     if (!form.checkValidity()) {
         form.reportValidity();
+        return;
+    }
+    
+    // Validazione specifica per CAP (5 cifre numeriche)
+    const cap = document.getElementById('cap').value.trim();
+    if (cap && !/^\d{5}$/.test(cap)) {
+        showError('Errore di validazione', 'Il CAP deve essere composto da 5 cifre numeriche');
+        document.getElementById('cap').focus();
         return;
     }
     
@@ -513,19 +620,38 @@ function sendSaveRequest(params) {
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvataggio...';
     saveBtn.disabled = true;
     
+    // Chiudi il modal prima di fare la chiamata per evitare problemi di UI
+    const modalElement = document.getElementById('modal-cliente');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    
     fetchAPI(params)
         .then(response => {
             if (response.success) {
-                // Chiudi il modal
-                bootstrap.Modal.getInstance(document.getElementById('modal-cliente')).hide();
-                
-                // Notifica successo
-                showSuccess(params.action === 'add_cliente' ? 
-                    'Cliente aggiunto con successo' : 
-                    'Cliente aggiornato con successo');
-                
-                // Ricarica clienti
-                loadClienti();
+                // Chiudi il modal se ancora aperto
+                if (modal) {
+                    modal.hide();
+                    
+                    // Attendi che la transizione del modal sia completata
+                    modalElement.addEventListener('hidden.bs.modal', function onModalHidden() {
+                        modalElement.removeEventListener('hidden.bs.modal', onModalHidden);
+                        
+                        // Notifica successo
+                        showSuccess(params.action === 'add_cliente' ? 
+                            'Cliente aggiunto con successo' : 
+                            'Cliente aggiornato con successo');
+                        
+                        // Ricarica clienti dopo la chiusura del modal
+                        setTimeout(() => loadClienti(), 100);
+                    }, { once: true });
+                } else {
+                    // Se il modal è già chiuso, procedi direttamente
+                    showSuccess(params.action === 'add_cliente' ? 
+                        'Cliente aggiunto con successo' : 
+                        'Cliente aggiornato con successo');
+                    
+                    // Ricarica clienti
+                    setTimeout(() => loadClienti(), 100);
+                }
             } else {
                 showError('Errore nel salvataggio', response.error);
             }
@@ -544,12 +670,38 @@ function sendSaveRequest(params) {
  * Cambio stato cliente (attivo/sospeso)
  */
 function toggleClienteStatus(clienteId, newStatus) {
-    if (!confirm(`Sei sicuro di voler ${newStatus ? 'attivare' : 'sospendere'} questo cliente?`)) {
-        return;
-    }
+    //if (!confirm(`Sei sicuro di voler ${newStatus ? 'attivare' : 'sospendere'} questo cliente?`)) {
+    //    return;
+  //  }
+    
+    // Trova il pulsante e la card per l'aggiornamento immediato
+    const clienteCards = document.querySelectorAll('.col-md-6.col-lg-4');
+    let targetBtn = null;
+    let targetCard = null;
+    let statusBar = null;
+    let statusBadge = null;
+    
+    // Cerca il pulsante e altri elementi da aggiornare
+    clienteCards.forEach(card => {
+        const toggleBtn = card.querySelector('[data-btn-toggle-status]');
+        if (toggleBtn && toggleBtn.onclick && toggleBtn.onclick.toString().includes(clienteId)) {
+            targetBtn = toggleBtn;
+            targetCard = card;
+            statusBar = card.querySelector('[data-status]');
+            statusBadge = card.querySelector('[data-badge-status]');
+            
+            // Applica un overlay di caricamento
+            card.style.position = 'relative';
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'updating-overlay';
+            loadingOverlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+            loadingOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);display:flex;justify-content:center;align-items:center;z-index:10;';
+            card.appendChild(loadingOverlay);
+        }
+    });
     
     fetchAPI({
-		apicall: 'cliente',
+        apicall: 'cliente',
         action: 'toggle_cliente_status',
         id: clienteId,
         attivo: newStatus ? 1 : 0
@@ -557,13 +709,63 @@ function toggleClienteStatus(clienteId, newStatus) {
     .then(response => {
         if (response.success) {
             showSuccess(`Cliente ${newStatus ? 'attivato' : 'sospeso'} con successo`);
-            loadClienti();
+            
+            // Aggiorna immediatamente l'interfaccia
+            if (targetBtn && targetCard) {
+                // Rimuovi overlay di caricamento
+                const overlay = targetCard.querySelector('.updating-overlay');
+                if (overlay) overlay.remove();
+                
+                // Aggiorna il colore e il testo del pulsante
+                const toggleLabel = targetBtn.querySelector('[data-toggle-label]');
+                if (toggleLabel) {
+                    toggleLabel.textContent = newStatus ? 'Sospendi' : 'Attiva';
+                }
+                
+                // Cambia lo stile del pulsante in base allo stato
+                if (newStatus) {
+                    // Cliente attivo - pulsante rosso per sospendere
+                    targetBtn.className = 'btn btn-outline-danger btn-sm';
+                } else {
+                    // Cliente sospeso - pulsante verde per attivare
+                    targetBtn.className = 'btn btn-outline-success btn-sm';
+                }
+                
+                // Aggiorna la barra di stato superiore
+                if (statusBar) {
+                    statusBar.className = newStatus ? 'card-status-top bg-success' : 'card-status-top bg-danger';
+                }
+                
+                // Aggiorna il badge di stato
+                if (statusBadge) {
+                    statusBadge.className = newStatus ? 'badge bg-success' : 'badge bg-danger';
+                    statusBadge.textContent = newStatus ? 'Attivo' : 'Sospeso';
+                }
+                
+                // Aggiorna la funzione onclick del pulsante per invertire l'azione
+                targetBtn.onclick = () => toggleClienteStatus(clienteId, !newStatus);
+            } else {
+                // Se non siamo riusciti a trovare gli elementi, ricarica tutti i dati
+                loadClienti();
+            }
         } else {
             showError('Errore nel cambio stato', response.error);
+            
+            // Rimuovi l'overlay se c'è stato un errore
+            if (targetCard) {
+                const overlay = targetCard.querySelector('.updating-overlay');
+                if (overlay) overlay.remove();
+            }
         }
     })
     .catch(error => {
         showError('Errore di comunicazione', error);
+        
+        // Rimuovi l'overlay in caso di errore
+        if (targetCard) {
+            const overlay = targetCard.querySelector('.updating-overlay');
+            if (overlay) overlay.remove();
+        }
     });
 }
 
@@ -586,6 +788,7 @@ function resetPassword(clienteId) {
     .then(response => {
         if (response.success) {
             showSuccess(`Password resettata con successo: ${newPassword}`);
+            loadClienti();
         } else {
             showError('Errore nel reset password', response.error);
         }
@@ -649,6 +852,26 @@ function deleteCliente(clienteId, nomeNegozio) {
         return;
     }
     
+    console.log('Eliminazione cliente:', clienteId, nomeNegozio);
+    
+    // Mostra indicatore di caricamento
+    const clienteCards = document.querySelectorAll('.col-md-6.col-lg-4');
+    let targetCard = null;
+    
+    // Trova la card del cliente che stiamo eliminando e aggiungi un overlay di caricamento
+    clienteCards.forEach(card => {
+        const deleteBtn = card.querySelector('[data-btn-delete]');
+        if (deleteBtn && deleteBtn.onclick && deleteBtn.onclick.toString().includes(clienteId)) {
+            targetCard = card;
+            card.style.position = 'relative';
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'eliminating-overlay';
+            loadingOverlay.innerHTML = '<div class="spinner-border text-danger" role="status"></div>';
+            loadingOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);display:flex;justify-content:center;align-items:center;z-index:10;';
+            card.appendChild(loadingOverlay);
+        }
+    });
+    
     fetchAPI({
 		apicall: 'cliente',
         action: 'delete_cliente',
@@ -657,13 +880,42 @@ function deleteCliente(clienteId, nomeNegozio) {
     .then(response => {
         if (response.success) {
             showSuccess('Cliente eliminato con successo');
-            loadClienti();
+            
+            // Se abbiamo trovato la card, rimuoviamola con animazione
+            if (targetCard) {
+                targetCard.style.transition = 'all 0.5s ease';
+                targetCard.style.opacity = '0';
+                targetCard.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    // Rimuovi la card dal DOM
+                    targetCard.remove();
+                    
+                    // Ricarica tutti i clienti per aggiornare la paginazione
+                    setTimeout(() => loadClienti(), 100);
+                }, 500);
+            } else {
+                // Se non abbiamo trovato la card, ricarica tutto
+                loadClienti();
+            }
         } else {
             showError('Errore nell\'eliminazione', response.error);
+            
+            // Rimuovi l'overlay se c'è stato un errore
+            if (targetCard) {
+                const overlay = targetCard.querySelector('.eliminating-overlay');
+                if (overlay) overlay.remove();
+            }
         }
     })
     .catch(error => {
         showError('Errore di comunicazione', error);
+        
+        // Rimuovi l'overlay in caso di errore
+        if (targetCard) {
+            const overlay = targetCard.querySelector('.eliminating-overlay');
+            if (overlay) overlay.remove();
+        }
     });
 }
 
@@ -729,6 +981,7 @@ function formatDate(dateString) {
  */
 function formatTipoPagamento(tipo) {
     const tipi = {
+        'vista': 'Pagamento a vista sconto 2%',
         '30gg': 'Pagamento a 30 giorni',
         '60gg': 'Pagamento a 60 giorni',
         'anticipato': 'Pagamento anticipato',
@@ -744,6 +997,8 @@ function formatTipoPagamento(tipo) {
  * @return {Promise} Promise con la risposta
  */
 function fetchAPI(params) {
+    console.log('Chiamata API:', params); // Logging della chiamata
+    
     return new Promise((resolve, reject) => {
         fetch(CONFIG.apiUrl, {
             method: 'POST',
@@ -758,8 +1013,14 @@ function fetchAPI(params) {
             }
             return response.json();
         })
-        .then(resolve)
-        .catch(reject);
+        .then(data => {
+            console.log('Risposta API:', data); // Logging della risposta
+            resolve(data);
+        })
+        .catch(error => {
+            console.error('Errore API:', error); // Logging degli errori
+            reject(error);
+        });
     });
 }
 
@@ -793,4 +1054,28 @@ function showError(title, message) {
         backgroundColor: "#ef4444",
         close: true
     }).showToast();
+}
+
+/**
+ * Ottiene il nome completo della provincia dalla sigla
+ * @param {string} sigla - Sigla della provincia
+ * @return {string} Nome completo della provincia
+ */
+function getProvinciaNome(sigla) {
+    if (!sigla) return '';
+    
+    const province = {
+        'AR': 'Arezzo',
+        'FI': 'Firenze',
+        'GR': 'Grosseto',
+        'LI': 'Livorno',
+        'LU': 'Lucca',
+        'MS': 'Massa-Carrara',
+        'PI': 'Pisa',
+        'PT': 'Pistoia',
+        'PO': 'Prato',
+        'SI': 'Siena'
+    };
+    
+    return province[sigla] || sigla;
 }

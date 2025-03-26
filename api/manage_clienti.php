@@ -49,6 +49,25 @@ function sanitizeInput($data) {
     return $data;
 }
 
+// Funzione per validare il CAP (5 cifre numeriche)
+function validaCap($cap) {
+    if (empty($cap)) {
+        return true; // CAP non obbligatorio
+    }
+    
+    return preg_match('/^\d{5}$/', $cap);
+}
+
+// Funzione per validare la provincia (deve essere una sigla valida)
+function validaProvincia($provincia) {
+    if (empty($provincia)) {
+        return true; // Provincia non obbligatoria
+    }
+    
+    $province_toscane = ['AR', 'FI', 'GR', 'LI', 'LU', 'MS', 'PI', 'PT', 'PO', 'SI'];
+    return in_array($provincia, $province_toscane);
+}
+
 // Verifica il metodo di richiesta
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -110,11 +129,16 @@ switch ($action) {
                     "data_apertura",
                     "email",
                     "indirizzo",
+                    "provincia",
+                    "cap",
                     "whatsapp",
                     "avatar",
                     "tipo_pagamento",
                     "attivo",
-                    "note_interne"
+                    "note_interne",
+                    "partita_iva",
+                    "codice_sdi",
+                    "orario_scarico"
                 ],
                 array_merge($where, [
                     "ORDER" => ["nome_negozio" => "ASC"],
@@ -179,11 +203,16 @@ switch ($action) {
                     "data_apertura",
                     "email",
                     "indirizzo",
+                    "provincia",
+                    "cap",
                     "whatsapp",
                     "avatar",
                     "tipo_pagamento",
                     "attivo",
-                    "note_interne"
+                    "note_interne",
+                    "partita_iva",
+                    "codice_sdi",
+                    "orario_scarico"
                 ],
                 ["id" => $id]
             );
@@ -240,6 +269,20 @@ switch ($action) {
                 }
             }
             
+            // Validazione CAP
+            if (!validaCap($clienteData['cap'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "CAP non valido. Deve essere composto da 5 cifre numeriche."]);
+                exit;
+            }
+            
+            // Validazione provincia
+            if (!validaProvincia($clienteData['provincia'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "Provincia non valida."]);
+                exit;
+            }
+            
             // Verifica se l'email è già in uso
             $esistente = $medooDB->has("clienti", ["email" => $clienteData['email']]);
             if ($esistente) {
@@ -290,7 +333,12 @@ switch ($action) {
                 "data_apertura" => $clienteData['data_apertura'],
                 "email" => $clienteData['email'],
                 "indirizzo" => $clienteData['indirizzo'] ?? '',
+                "provincia" => $clienteData['provincia'] ?? '',
+                "cap" => $clienteData['cap'] ?? '',
                 "whatsapp" => $clienteData['whatsapp'] ?? '',
+                "partita_iva" => $clienteData['partita_iva'] ?? '',
+                "codice_sdi" => $clienteData['codice_sdi'] ?? '',
+                "orario_scarico" => $clienteData['orario_scarico'] ?? '',
                 "password" => password_hash($clienteData['password'], PASSWORD_DEFAULT),
                 "tipo_pagamento" => $clienteData['tipo_pagamento'],
                 "attivo" => intval($clienteData['attivo'] ?? 1),
@@ -346,6 +394,20 @@ switch ($action) {
             if ($clienteId <= 0) {
                 http_response_code(400);
                 echo json_encode(["error" => "ID cliente non valido"]);
+                exit;
+            }
+            
+            // Validazione CAP
+            if (!validaCap($clienteData['cap'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "CAP non valido. Deve essere composto da 5 cifre numeriche."]);
+                exit;
+            }
+            
+            // Validazione provincia
+            if (!validaProvincia($clienteData['provincia'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "Provincia non valida."]);
                 exit;
             }
             
@@ -419,7 +481,12 @@ switch ($action) {
                 "data_apertura" => $clienteData['data_apertura'],
                 "email" => $clienteData['email'],
                 "indirizzo" => $clienteData['indirizzo'] ?? '',
+                "provincia" => $clienteData['provincia'] ?? '',
+                "cap" => $clienteData['cap'] ?? '',
                 "whatsapp" => $clienteData['whatsapp'] ?? '',
+                "partita_iva" => $clienteData['partita_iva'] ?? '',
+                "codice_sdi" => $clienteData['codice_sdi'] ?? '',
+                "orario_scarico" => $clienteData['orario_scarico'] ?? '',
                 "tipo_pagamento" => $clienteData['tipo_pagamento'],
                 "attivo" => intval($clienteData['attivo'] ?? 1),
                 "note_interne" => $clienteData['note_interne'] ?? '',
