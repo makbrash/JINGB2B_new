@@ -37,8 +37,9 @@ require_once 'includes/page-header.php';
             <div class="col-md-4">
                 <select id="filter-pagamento" class="form-select">
                     <option value="">Tutti i metodi di pagamento</option>
-                    <option value="30gg">Pagamento 30gg</option>
-                    <option value="60gg">Pagamento 60gg</option>
+                    <option value="vista">pagamento a vista sconto 2%</option>
+                    <option value="30gg">rimessa diretta 30gg</option>
+                    <option value="60gg">rimessa diretta 60gg</option>
                     <option value="anticipato">Pagamento anticipato</option>
                     <option value="contrassegno">Contrassegno</option>
                 </select>
@@ -133,6 +134,50 @@ require_once 'includes/page-header.php';
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
+                            <label class="form-label">Provincia</label>
+                            <select class="form-select" id="provincia" name="provincia">
+                                <option value="">Seleziona provincia</option>
+                                <option value="AR">Arezzo</option>
+                                <option value="FI">Firenze</option>
+                                <option value="GR">Grosseto</option>
+                                <option value="LI">Livorno</option>
+                                <option value="LU">Lucca</option>
+                                <option value="MS">Massa-Carrara</option>
+                                <option value="PI">Pisa</option>
+                                <option value="PT">Pistoia</option>
+                                <option value="PO">Prato</option>
+                                <option value="SI">Siena</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">CAP</label>
+                            <input type="text" class="form-control" id="cap" name="cap" maxlength="5" pattern="[0-9]{5}" placeholder="Inserisci CAP (5 cifre)">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Partita IVA</label>
+                            <input type="text" class="form-control" id="partita-iva" name="partita_iva">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Codice SDI</label>
+                            <input type="text" class="form-control" id="codice-sdi" name="codice_sdi" maxlength="7">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Orario di scarico merce</label>
+                            <input type="text" class="form-control" id="orario-scarico" name="orario_scarico" placeholder="Es: 09:00-12:00, 14:00-17:00">
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Spazio vuoto per bilanciare il layout -->
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label required">Password</label>
                             <div class="input-group">
                                 <input type="password" class="form-control" id="password" name="password" required>
@@ -155,6 +200,7 @@ require_once 'includes/page-header.php';
                             <label class="form-label required">Tipo di Pagamento</label>
                             <select class="form-select" id="tipo-pagamento" name="tipo_pagamento" required>
                                 <option value="">Seleziona metodo</option>
+                                <option value="vista">pagamento a vista sconto 2%</option>
                                 <option value="30gg">Pagamento 30gg</option>
                                 <option value="60gg">Pagamento 60gg</option>
                                 <option value="anticipato">Pagamento anticipato</option>
@@ -241,6 +287,25 @@ require_once 'includes/page-header.php';
                 <div class="mb-2">
                     <i class="ti ti-map-pin me-1"></i>
                     <span data-indirizzo></span>
+                </div>
+                <div class="mb-2">
+                    <i class="ti ti-map me-1"></i>
+                    <span data-provincia></span> - <span data-cap></span>
+                </div>
+                <div class="mb-2">
+                    <i class="ti ti-receipt-tax me-1"></i>
+                    <span class="text-muted">P.IVA: </span>
+                    <span data-partita-iva></span>
+                </div>
+                <div class="mb-2">
+                    <i class="ti ti-file-invoice me-1"></i>
+                    <span class="text-muted">Codice SDI: </span>
+                    <span data-codice-sdi></span>
+                </div>
+                <div class="mb-2">
+                    <i class="ti ti-truck-delivery me-1"></i>
+                    <span class="text-muted">Orario scarico: </span>
+                    <span data-orario-scarico></span>
                 </div>
                 <div class="mb-2">
                     <i class="ti ti-brand-whatsapp me-1"></i>
