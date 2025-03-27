@@ -3,10 +3,13 @@
 header('Content-Type: application/json');
 
 // Aumenta i limiti PHP per gestire file grandi
-ini_set('max_execution_time', 300); // 5 minuti
-ini_set('memory_limit', '512M');    // 512 MB
-ini_set('post_max_size', '150M');   // Limite massimo POST a 150MB
-ini_set('upload_max_filesize', '150M'); // Dimensione massima upload
+ini_set('max_execution_time', 600);     // 10 minuti
+ini_set('memory_limit', '1024M');       // 1 GB
+ini_set('post_max_size', '300M');       // Limite massimo POST a 300MB
+ini_set('upload_max_filesize', '300M'); // Dimensione massima upload
+
+
+
 
 // Cartella per il caricamento
 $uploadDir = '../00_IN_REVISIONE/dati/uploads/';
@@ -62,19 +65,55 @@ if ($fileExtension !== 'json' || ($fileType !== 'application/json' && strpos($fi
     exit;
 }
 
-// Controlla dimensione file (max 150MB)
-$maxFileSize = 150 * 1024 * 1024; // 150MB
-if ($fileSize > $maxFileSize) {
-    echo json_encode([
-        'success' => false,
-        'error' => 'Il file è troppo grande. Dimensione massima consentita: 150MB.'
-    ]);
-    exit;
+
+$fileSize = filesize($jsonFile);
+if ($fileSize > 50 * 1024 * 1024) {
+    $batchSize = 20; // Batch più piccoli per file molto grandi
+} else if ($fileSize > 10 * 1024 * 1024) {
+    $batchSize = 30; // Batch medi per file grandi
+} else {
+    $batchSize = 50; // Batch più grandi per file piccoli
 }
 
 // Genera un nome univoco per il file
 $newFileName = uniqid('catalog_') . '.json';
 $targetFilePath = $uploadDir . $newFileName;
+
+
+// Per file molto grandi, caricalo a pezzi per evitare problemi di memoria
+if ($fileSize > 50 * 1024 * 1024) { // Se maggiore di 50MB
+    $success = false;
+    $chunkSize = 1024 * 1024; // 1MB per chunk
+    $in = fopen($fileTmpPath, 'rb');
+    $out = fopen($targetFilePath, 'wb');
+    
+    if ($in && $out) {
+        while (!feof($in)) {
+            $buffer = fread($in, $chunkSize);
+            fwrite($out, $buffer);
+        }
+        $success = true;
+        fclose($in);
+        fclose($out);
+    }
+    
+    if (!$success) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Errore nel caricamento del file a pezzi.'
+        ]);
+        exit;
+    }
+} else {
+    // Usa il normale move_uploaded_file per file più piccoli
+    if (!move_uploaded_file($fileTmpPath, $targetFilePath)) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Errore nel caricamento del file. Verifica i permessi della cartella.'
+        ]);
+        exit;
+    }
+}
 
 // Sposta il file nella cartella di destinazione
 if (move_uploaded_file($fileTmpPath, $targetFilePath)) {

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dwsync>
-<file name="clienti.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133874269880365312" remote="133874176200000000" Dst="1" />
+<file name="clienti.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133874924165602716" remote="133874924400000000" Dst="1" />
 <file name="index.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133874269901521462" remote="133874172000000000" Dst="1" />
+<file name="negozi.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875052112857147" remote="133875052200000000" Dst="1" />
+<file name="comparatore_dati_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875152971315508" remote="133875153000000000" Dst="1" />
+<file name="import_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875151743163013" remote="133875151800000000" Dst="1" />
+<file name="upload_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875151743173003" remote="133875151800000000" Dst="1" />
+<file name="split_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875149830559824" remote="133875151800000000" Dst="1" />
 </dwsync>

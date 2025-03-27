@@ -14,28 +14,35 @@ header('Connection: keep-alive');
 ob_start(); // Assicurati che il buffer sia attivo
 ob_implicit_flush(true);
 
+// MODIFICA in import_json.php
 function emitLog($message) {
     echo $message . "\n";
+    // Importante: usare ob_flush() e flush() per garantire l'invio immediato
+    if (ob_get_level() > 0) {
+        ob_flush();
+    }
     flush();
 }
 
-// Funzione per emettere aggiornamenti UI solo ogni X elementi (riduce sovraccarico)
+// MODIFICA agli script js nei log
 function emitProgressUpdate($progressBar, $value, $count, $total) {
     static $lastUpdates = [];
     $key = $progressBar . $count;
     
-    // Aggiorna solo ogni 1% di avanzamento o all'inizio/fine
+    // Aggiorna solo ogni 5% di avanzamento per ridurre il sovraccarico
     $percent = round(($count / $total) * 100);
     $lastPercent = isset($lastUpdates[$key]) ? $lastUpdates[$key] : -1;
     
-    if ($percent != $lastPercent && ($percent % 2 == 0 || $count == $total || $count == 1)) {
-        emitLog("<script>
-            document.getElementById('$progressBar').style.width = '$percent%';
-            document.getElementById('$progressBar').textContent = '$percent%';
-        </script>");
+    if ($percent != $lastPercent && ($percent % 5 == 0 || $count == $total || $count == 1)) {
+        // Correzione: usa <script> tag con attributo type corretto
+        emitLog('<div class="d-none" id="js-progress-update"><script type="text/javascript">
+            document.getElementById("'.$progressBar.'").style.width = "'.$percent.'%";
+            document.getElementById("'.$progressBar.'").textContent = "'.$percent.'%";
+        </script></div>');
         $lastUpdates[$key] = $percent;
     }
 }
+
 
 // Gestione parametri
 $useDefault = isset($_GET['use_default']) && $_GET['use_default'] === '1';
@@ -255,26 +262,26 @@ foreach ($productBatches as $batch) {
                     </script>");
                 }
                 
-                if (!empty($immagineBase64) && str_contains($immagineBase64, ',')) {
-                    list(, $data) = explode(',', $immagineBase64);
-                    $decodedImage = base64_decode($data);
-                    
-                    if ($decodedImage) {
-                        $imageFileName = $ean . ".jpg";
-                        file_put_contents($imgDir . $imageFileName, $decodedImage);
-                        $imagesSaved++;
-                        $batchImagesSaved++;
-                    } else {
-                        if ($processedCount % 50 == 0) {
-                            emitLog("<div class='text-danger'><i class='ti ti-photo-off'></i> Errore decodifica immagine: <strong>$titolo</strong> (EAN: $ean)</div>");
-                        }
-                        $imagesError++;
-                        $batchImagesError++;
-                    }
-                } else {
-                    $imagesMissing++;
-                    $batchImagesMissing++;
-                }
+// Gestione immagine ottimizzata
+if (!empty($immagineBase64) && str_contains($immagineBase64, ',')) {
+    // Pulizia della memoria per evitare memory leak
+    if (isset($decodedImage)) {
+        unset($decodedImage);
+    }
+    
+    list(, $data) = explode(',', $immagineBase64);
+    $decodedImage = base64_decode($data);
+    
+    if ($decodedImage) {
+        $imageFileName = $ean . ".jpg";
+        file_put_contents($imgDir . $imageFileName, $decodedImage);
+        $imagesSaved++;
+        $batchImagesSaved++;
+        
+        // Libera memoria
+        unset($data, $decodedImage);
+    }
+}
                 
                 // Inserisce il nuovo prodotto
                 $medooDB->insert("prodotti", [

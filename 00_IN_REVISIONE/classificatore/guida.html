@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Documento senza titolo</title>
+</head>
+
+<body>
+<h1>Guida all'implementazione delle librerie</h1>
+<p>Questa guida ti fornirà i passaggi dettagliati per implementare le librerie raccomandate nel sistema di classificazione prodotti.</p>
+<h2>1. Preparazione dell'ambiente</h2>
+<h3>Struttura delle cartelle</h3>
+<p>Prima di iniziare, organizza il tuo progetto con questa struttura di cartelle:</p>
+<pre>classificatore/  ├── classificatore.php         # File PHP principale (aggiornato)  ├── classificatore.css         # Stili CSS (aggiornato con stili per le librerie)  ├── classificatore.js          # File JavaScript principale  ├── classificatore_ajax.php    # Script per le richieste AJAX backend  ├── classificatore_backend.php # Logica backend  ├── moduli/                    # Cartella per i moduli JavaScript  │   ├── config.js              # Configurazione  │   ├── state.js               # Gestione stato  │   ├── ui.js                  # UI (aggiornato per SweetAlert2)  │   ├── api.js                 # API  │   ├── products.js            # Prodotti (aggiornato per DataTables)  │   ├── filters.js             # Filtri (aggiornato per Select2)  │   ├── statistics.js          # Statistiche (aggiornato per Chart.js)  │   ├── multiselect.js         # Selezione multipla  │   └── inline-edit.js         # Modifica inline  └── struttura_db.php           # Script per struttura database  </pre>
+<h3>Aggiornamento classificatore.php</h3>
+<p>Sostituisci il contenuto del file classificatore.php con la versione aggiornata fornita, che include:</p>
+<ol>
+  <li>Link alle librerie CSS esterne</li>
+  <li>Struttura HTML aggiornata per i grafici</li>
+  <li>Script JavaScript per le librerie esterne</li>
+</ol>
+<h2>2. Implementazione delle librerie</h2>
+<h3>DataTables</h3>
+<ol>
+  <li><strong>Copia il codice</strong> dal file products.js aggiornato nel file moduli/products.js</li>
+  <li><strong>Aggiungi gli stili personalizzati</strong> per DataTables al tuo file CSS, scommentando le regole CSS fornite nel file products.js</li>
+  <li><strong>Verifica che i file necessari</strong> per l'esportazione (JSZip, pdfmake) siano correttamente inclusi</li>
+</ol>
+<h3>Chart.js</h3>
+<ol>
+  <li><strong>Copia il codice</strong> dal file statistics.js aggiornato nel file moduli/statistics.js</li>
+  <li><strong>Aggiungi gli stili personalizzati</strong> per i grafici e le legende al tuo file CSS, scommentando le regole CSS fornite</li>
+  <li><strong>Verifica che i contenitori canvas</strong> siano presenti nell'HTML per i grafici</li>
+</ol>
+<h3>Select2</h3>
+<ol>
+  <li><strong>Copia il codice</strong> dal file filters.js aggiornato nel file moduli/filters.js</li>
+  <li><strong>Aggiorna la funzione popolaSelettoriModal</strong> in inline-edit.js per supportare Select2 nei modal</li>
+  <li><strong>Aggiungi gli stili personalizzati</strong> per Select2 al tuo file CSS, scommentando le regole CSS fornite</li>
+</ol>
+<h3>SweetAlert2</h3>
+<ol>
+  <li><strong>Copia il codice</strong> dal file ui.js aggiornato nel file moduli/ui.js</li>
+  <li><strong>Sostituisci le funzioni di conferma e notifica</strong> in products.js</li>
+  <li><strong>Aggiungi gli stili personalizzati</strong> per SweetAlert2 al tuo file CSS, scommentando le regole CSS fornite</li>
+</ol>
+<h2>3. Stili CSS</h2>
+<p>Aggiungi tutti gli stili personalizzati forniti per ogni libreria al tuo file classificatore.css. Gli stili sono commentati in ogni file di implementazione e devono essere decommentati e aggiunti.</p>
+<h2>4. Configurazione avanzata</h2>
+<h3>DataTables</h3>
+<p>Per personalizzare ulteriormente DataTables:</p>
+<pre>// In config.js aggiungi  dataTables: {      language: {          url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'      },      pageLength: 20,      dom: 'Bfrtip',      buttons: ['excel', 'csv', 'pdf']  }  </pre>
+<h3>Chart.js</h3>
+<p>Per personalizzare i colori e le animazioni dei grafici:</p>
+<pre>// In config.js aggiungi  charts: {      colors: {          categories: ['#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#e74c3c', '#34495e', '#1abc9c', '#f1c40f'],          brands: ['#1abc9c', '#3498db', '#9b59b6', '#e67e22', '#e74c3c', '#f1c40f', '#95a5a6', '#16a085'],          subcategories: ['#2ecc71', '#3498db', '#9b59b6', '#e67e22', '#f39c12', '#34495e', '#1abc9c', '#f1c40f']      },      animation: {          duration: 1000      }  }  </pre>
+<h3>Select2</h3>
+<p>Per personalizzare Select2:</p>
+<pre>// In filters.js modifica  inizializzaSelect2: function() {      const defaultOptions = {          theme: 'classic', // Cambia a 'bootstrap' se usi Bootstrap          allowClear: true,          width: '100%',          language: 'it'      };      // ...rest of the function  }  </pre>
+<h3>SweetAlert2</h3>
+<p>Per personalizzare SweetAlert2:</p>
+<pre>// In ui.js modifica  configuraSweetAlert: function() {      Swal.mixin({          customClass: {              confirmButton: 'button button-success',              cancelButton: 'button button-danger'          },          buttonsStyling: false,          confirmButtonText: 'Conferma',          cancelButtonText: 'Annulla',          reverseButtons: true      });  }  </pre>
+<h2>5. Verifica e debug</h2>
+<p>Dopo l'implementazione, verifica che tutto funzioni correttamente:</p>
+<ol>
+  <li><strong>Tabella prodotti</strong>: Controlla che DataTables funzioni e mostri correttamente i prodotti</li>
+  <li><strong>Grafici statistiche</strong>: Verifica che i grafici Chart.js vengano generati e siano interattivi</li>
+  <li><strong>Select avanzate</strong>: Controlla che Select2 funzioni correttamente nei filtri e nei modal</li>
+  <li><strong>Notifiche e modal</strong>: Verifica che SweetAlert2 mostri correttamente notifiche e dialog</li>
+</ol>
+<p>Per il debug, apri la console del browser e controlla eventuali errori o avvisi. Verifica anche l'ordine di caricamento delle librerie per evitare problemi di dipendenza.</p>
+<h2>6. Note sull'evoluzione futura</h2>
+<p>Questa implementazione fornisce una solida base moderna per il tuo sistema. Per evoluzioni future, considera:</p>
+<ol>
+  <li><strong>Aggiornamento delle librerie</strong>: Quando escono nuove versioni, verifica la compatibilità</li>
+  <li><strong>Modularizzazione maggiore</strong>: Potresti voler spostare la configurazione delle librerie in file separati</li>
+  <li><strong>Lazy loading</strong>: Per ottimizzare le prestazioni, potresti caricare le librerie solo quando necessario</li>
+</ol>
+<p>Seguendo questa guida, il tuo sistema di classificazione prodotti avrà un'interfaccia moderna, reattiva e funzionale grazie all'integrazione di librerie potenti e flessibili.</p>
+</body>
+</html>

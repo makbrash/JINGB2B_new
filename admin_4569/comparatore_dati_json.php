@@ -92,6 +92,12 @@ if (!is_dir($uploadDir)) {
                     Avvia Importazione
                 </button>
             </div>
+            <div class="col-auto">
+            <button type="button" class="btn btn-outline-warning" id="btn-split-json" style="display: none;">
+    <i class="ti ti-cut me-2"></i>
+    Dividi in più parti
+</button>
+            </div>
         </div>
     </div>
 </div>
@@ -282,7 +288,99 @@ if (!is_dir($uploadDir)) {
 
 <!-- Script per la gestione dell'importazione -->
 <script>
+
+
+
+
+
+// Gestione per dividere file grandi
 document.addEventListener('DOMContentLoaded', function() {
+    const btnSplitJson = document.getElementById('btn-split-json');
+    
+    // Mostra il pulsante "Dividi" quando viene selezionato un file grande
+    document.getElementById('json-file').addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            // Mostra il pulsante di split solo per file grandi (>10MB)
+            btnSplitJson.style.display = file.size > 10 * 1024 * 1024 ? 'inline-block' : 'none';
+        }
+    });
+    
+    // Gestisci la divisione del file
+    btnSplitJson.addEventListener('click', async function() {
+        const fileInput = document.getElementById('json-file');
+        if (fileInput.files.length === 0) return;
+        
+        const file = fileInput.files[0];
+        
+        // Prima carica il file
+        const formData = new FormData();
+        formData.append('json_file', file);
+        
+        try {
+            // Carica il file
+            const uploadResponse = await fetch('upload_json.php', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadResult = await uploadResponse.json();
+            
+            if (!uploadResult.success) {
+                alert('Errore durante il caricamento: ' + uploadResult.error);
+                return;
+            }
+            
+            // Ora dividi il file
+            const itemsPerFile = prompt('Quanti prodotti per file? (consigliato: 500)', '500');
+            if (!itemsPerFile) return;
+            
+            const splitResponse = await fetch(`split_json.php?file=${uploadResult.filename}&items=${itemsPerFile}`);
+            const splitResult = await splitResponse.json();
+            
+            if (splitResult.success) {
+                alert(`File diviso con successo in ${splitResult.count} parti!`);
+                
+                // Aggiorna l'interfaccia con link ai file divisi
+                const filesDiv = document.createElement('div');
+                filesDiv.className = 'mt-3 alert alert-success';
+                filesDiv.innerHTML = `
+                    <h4><i class="ti ti-files"></i> File divisi in ${splitResult.count} parti</h4>
+                    <p>Puoi importare ogni parte separatamente:</p>
+                    <ul class="list-group">
+                        ${splitResult.files.map((file, index) => 
+                            `<li class="list-group-item d-flex justify-content-between align-items-center">
+                                Parte ${index + 1}
+                                <button class="btn btn-sm btn-primary import-part" data-file="${file.split('/').pop()}">
+                                    Importa questa parte
+                                </button>
+                            </li>`
+                        ).join('')}
+                    </ul>
+                `;
+                
+                document.querySelector('.card-body').appendChild(filesDiv);
+                
+                // Aggiungi handler per importare le singole parti
+                document.querySelectorAll('.import-part').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const filename = this.getAttribute('data-file');
+                        // Imposta il file come currentFile e mostra le info
+                        currentFile = filename;
+                        fileStatusCard.style.display = 'block';
+                        fileNameDisplay.textContent = 'File selezionato: ' + filename;
+                        fileSizeDisplay.textContent = 'File suddiviso (parte)';
+                    });
+                });
+            } else {
+                alert('Errore durante la divisione: ' + splitResult.error);
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            alert('Errore durante l\'elaborazione');
+        }
+    });
+});
+
     const jsonUploadForm = document.getElementById('json-upload-form');
     const fileStatusCard = document.getElementById('file-status-card');
     const fileNameDisplay = document.getElementById('file-name-display');
@@ -401,105 +499,108 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Avvia importazione
-    btnStartImport.addEventListener('click', async function() {
-        if (!currentFile) {
-            alert('Nessun file selezionato');
-            return;
-        }
-        
-        // Reset UI
-        btnStartImport.disabled = true;
-        resultsCard.style.display = 'block';
-        importLog.innerHTML = '';
-        successLog.innerHTML = '';
-        warningLog.innerHTML = '';
-        errorLog.innerHTML = '';
-        progressBar.style.width = '0%';
-        progressBar.textContent = '0%';
-        insertProgress.style.width = '0%';
-        insertProgress.textContent = '0%';
-        imagesProgress.style.width = '0%';
-        imagesProgress.textContent = '0%';
-        
-        // Reset contatori
-        document.getElementById('total-products').textContent = '0';
-        document.getElementById('inserted-count').textContent = '0';
-        document.getElementById('updated-count').textContent = '0';
-        document.getElementById('error-count').textContent = '0';
-        
-        // Crea URL con parametri di query
-        const params = new URLSearchParams();
-        
-        if (currentFile !== 'default') {
-            params.append('file', currentFile);
-        }
-        
-        if (importOptions.overwriteImages) {
-            params.append('overwrite_images', '1');
-        }
-        
-        if (importOptions.skipExisting) {
-            params.append('skip_existing', '1');
-        }
-        
-        if (importOptions.useDefault) {
-            params.append('use_default', '1');
-        }
-        
+
+
+    // AGGIUNGI al click del bottone di importazione
+btnStartImport.addEventListener('click', async function() {
+    // [codice esistente]
+    
+    // Aggiungi un timeout di sicurezza per evitare blocchi infiniti
+    const importTimeout = setTimeout(() => {
+        importLog.innerHTML += `<div class="text-danger"><i class="ti ti-clock-cancel"></i> L'importazione è stata interrotta per timeout dopo 10 minuti. Prova a suddividere il file in parti più piccole.</div>`;
+        errorLog.innerHTML += `<div class="text-danger"><i class="ti ti-clock-cancel"></i> L'importazione è stata interrotta per timeout dopo 10 minuti. Prova a suddividere il file in parti più piccole.</div>`;
+        btnStartImport.disabled = false;
+    }, 10 * 60 * 1000); // 10 minuti
+    
+    try {
+        // [codice esistente per la fetch]
+    } catch (error) {
+        // [gestione errori esistente]
+    } finally {
+        clearTimeout(importTimeout);
+        btnStartImport.disabled = false;
+    }
+});
+
+
+
+
+// AGGIUNGI al fondo dello script in comparatore_dati_json.php
+// Funzione per eseguire gli script nei messaggi di log
+function processScriptsInLog() {
+    // Trova tutti gli elementi script nei container di log
+    const scriptContainers = document.querySelectorAll('#js-progress-update');
+    
+    scriptContainers.forEach(container => {
         try {
-            const response = await fetch('import_json.php?' + params.toString());
-            const reader = response.body.getReader();
-            
-            while(true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                
-                const text = new TextDecoder().decode(value);
-                const lines = text.split('\n');
-                
-                lines.forEach(line => {
-                    if (line.trim()) {
-                        // Filtra il contenuto per evitare problemi di parsing
-                        if (!line.startsWith('<script>')) {
-                            const logEntry = document.createElement('div');
-                            logEntry.className = 'mb-2';
-                            logEntry.innerHTML = line;
-                            importLog.appendChild(logEntry);
-                            importLog.scrollTop = importLog.scrollHeight;
-                            
-                            // Categorizza i log
-                            if (line.includes('text-success')) {
-                                successLog.innerHTML += line;
-                                successLog.scrollTop = successLog.scrollHeight;
-                            } else if (line.includes('text-warning')) {
-                                warningLog.innerHTML += line;
-                                warningLog.scrollTop = warningLog.scrollHeight;
-                            } else if (line.includes('text-danger')) {
-                                errorLog.innerHTML += line;
-                                errorLog.scrollTop = errorLog.scrollHeight;
-                            }
-                        } else {
-                            // Esegui gli script per aggiornare i contatori e le barre di progresso
-                            try {
-                                const scriptContent = line.replace(/<script>/g, "").replace(/<\/script>/g, "");
-                                eval(scriptContent);
-                            } catch (e) {
-                                console.error("Errore nell'esecuzione dello script:", e);
-                            }
-                        }
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Errore durante l\'importazione:', error);
-            importLog.innerHTML += `<div class="text-danger">❌ Errore durante l'importazione: ${error.message}</div>`;
-            errorLog.innerHTML += `<div class="text-danger">❌ Errore durante l'importazione: ${error.message}</div>`;
-        } finally {
-            btnStartImport.disabled = false;
+            // Estrai il contenuto dello script
+            const scriptContent = container.querySelector('script').innerHTML;
+            // Esegui lo script
+            eval(scriptContent);
+            // Rimuovi il container dopo l'esecuzione
+            container.remove();
+        } catch (e) {
+            console.error("Errore nell'esecuzione dello script:", e);
         }
     });
+}
+
+// Modifica la funzione di lettura dello stream per processare gli script
+btnStartImport.addEventListener('click', async function() {
+    // [codice esistente...]
+    
+    try {
+        const response = await fetch('import_json.php?' + params.toString());
+        const reader = response.body.getReader();
+        
+        while(true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            
+            const text = new TextDecoder().decode(value);
+            const lines = text.split('\n');
+            
+            lines.forEach(line => {
+                if (line.trim()) {
+                    // Aggiungi il contenuto al log
+                    if (!line.includes('js-progress-update')) {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'mb-2';
+                        logEntry.innerHTML = line;
+                        importLog.appendChild(logEntry);
+                        
+                        // Categorizza i log
+                        if (line.includes('text-success')) {
+                            successLog.innerHTML += line;
+                        } else if (line.includes('text-warning')) {
+                            warningLog.innerHTML += line;
+                        } else if (line.includes('text-danger')) {
+                            errorLog.innerHTML += line;
+                        }
+                    } else {
+                        // Aggiungi lo script nascosto al DOM
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = line;
+                        document.body.appendChild(tempDiv);
+                    }
+                }
+            });
+            
+            // Esegui gli script dopo ogni chunk
+            processScriptsInLog();
+            
+            // Scorri i log in basso
+            importLog.scrollTop = importLog.scrollHeight;
+            successLog.scrollTop = successLog.scrollHeight;
+            warningLog.scrollTop = warningLog.scrollHeight;
+            errorLog.scrollTop = errorLog.scrollHeight;
+        }
+    } catch (error) {
+        // [gestione errori esistente...]
+    }
 });
+
+
 </script>
 
 <?php
