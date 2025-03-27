@@ -109,16 +109,6 @@ require_once 'includes/page-header.php';
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Data Importazione</label>
-                            <input type="date" class="form-control" id="data-import" name="data_import">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Ordinamento</label>
-                            <input type="number" class="form-control" id="ordinamento" name="ordinamento" value="0" min="0">
-                        </div>
-                    </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">

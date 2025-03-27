@@ -232,27 +232,18 @@ function renderNegozioCards(negozi) {
         const whatsappEl = card.querySelector('[data-whatsapp]');
         if (negozio.whatsapp) {
             whatsappEl.textContent = negozio.whatsapp;
-            whatsappEl.href = `https://wa.me/${negozio.whatsapp.replace(/[^0-9]/g, '')}`;
+            const whatsappStr = String(negozio.whatsapp);
+            whatsappEl.href = `https://wa.me/${whatsappStr.replace(/[^0-9]/g, '')}`;
         } else {
             whatsappEl.textContent = 'Non specificato';
             whatsappEl.removeAttribute('href');
-        }
-        
-        // Gestione campo data_import (potrebbe essere disabilitato nel backend)
-        const dataImportEl = card.querySelector('[data-data-import]');
-        if (dataImportEl) {
-            if (negozio.data_import) {
-                dataImportEl.textContent = formatDate(negozio.data_import);
-            } else {
-                dataImportEl.textContent = 'Non specificato';
-            }
         }
         
         card.querySelector('[data-ordinamento]').textContent = negozio.ordinamento || '0';
         
         // Pulsanti azioni
         const btnEdit = card.querySelector('[data-btn-edit]');
-        btnEdit.addEventListener('click', () => editNegozio(negozio.id));
+        btnEdit.addEventListener('click', () => editNegozio(negozio.id || negozio.ID));
         
         const btnToggleStatus = card.querySelector('[data-btn-toggle-status]');
         const toggleLabel = card.querySelector('[data-toggle-label]');
@@ -268,15 +259,13 @@ function renderNegozioCards(negozi) {
             toggleLabel.textContent = 'Attiva';
         }
         
-        // Se stanby = 0 (attivo), newStatus deve essere true
-        // Se stanby = 1 (sospeso), newStatus deve essere false
-        btnToggleStatus.addEventListener('click', () => toggleNegozioStatus(negozio.id, negozio.stanby == 0));
+        btnToggleStatus.addEventListener('click', () => toggleNegozioStatus(negozio.id || negozio.ID, negozio.stanby == 1));
         
         const btnViewNotes = card.querySelector('[data-btn-view-notes]');
         btnViewNotes.addEventListener('click', () => viewNotes(negozio));
         
         const btnDelete = card.querySelector('[data-btn-delete]');
-        btnDelete.addEventListener('click', () => deleteNegozio(negozio.id, negozio.nome));
+        btnDelete.addEventListener('click', () => deleteNegozio(negozio.id || negozio.ID, negozio.nome));
         
         // Aggiungi la card al container
         container.appendChild(card);
@@ -395,6 +384,29 @@ function resetForm() {
  * @param {number} negozioId - ID del negozio
  */
 function editNegozio(negozioId) {
+    // Mostra loading state
+    const loadingHtml = `
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="mb-0">Caricamento dati negozio...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalElement = document.getElementById('modal-negozio');
+    if (!modalElement) {
+        showError('Errore', 'Modal non trovato');
+        return;
+    }
+    
+    // Mostra il modal con loading state
+    modalElement.innerHTML = loadingHtml;
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
     // Effettua la chiamata per recuperare i dati del negozio
     fetchAPI({ 
         apicall: 'negozio',
@@ -405,46 +417,43 @@ function editNegozio(negozioId) {
         if (response.success && response.data) {
             const negozio = response.data;
             
-            // Popola il form con i dati del negozio
-            document.getElementById('negozio-id').value = negozio.id;
-            document.getElementById('nome').value = negozio.nome;
-            document.getElementById('descrizione').value = negozio.descrizione || '';
-            document.getElementById('email').value = negozio.email || '';
-            document.getElementById('whatsapp').value = negozio.whatsapp || '';
+            // Ripristina il contenuto originale del modal
+            modalElement.innerHTML = document.getElementById('modal-negozio-template').innerHTML;
             
-            // Gestione campo data_import (potrebbe essere disabilitato nel backend)
-            const dataImportEl = document.getElementById('data-import');
-            if (dataImportEl) {
-                if (negozio.data_import) {
-                    dataImportEl.value = negozio.data_import;
-                } else {
-                    dataImportEl.value = '';
+            // Popola il form con i dati
+            Object.keys(negozio).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = negozio[key] == 0;
+                    } else {
+                        element.value = negozio[key] || '';
+                    }
                 }
-            }
+            });
             
-            document.getElementById('ordinamento').value = negozio.ordinamento || '0';
-            document.getElementById('negozio-stanby').checked = negozio.stanby == 0;
-            document.getElementById('note').value = negozio.note || '';
-            document.getElementById('json-layout-catalogo').value = negozio.json_layout_catalogo || '';
-            
-            // Imposta immagine
-            if (negozio.immagine) {
-                document.getElementById('preview-immagine').src = '/' + negozio.immagine;
-            } else {
-                document.getElementById('preview-immagine').src = CONFIG.defaultAvatar;
+            // Imposta immagine preview
+            const imgElement = document.getElementById('preview-immagine');
+            if (imgElement) {
+                imgElement.src = negozio.immagine ? '/' + negozio.immagine : CONFIG.defaultAvatar;
+                imgElement.onerror = () => {
+                    imgElement.src = CONFIG.defaultAvatar;
+                };
             }
             
             // Aggiorna titolo modal
-            document.getElementById('modal-title').textContent = 'Modifica Negozio';
+            const titleElement = document.getElementById('modal-title');
+            if (titleElement) {
+                titleElement.textContent = 'Modifica Negozio';
+            }
             
-            // Apri il modal
-            const modal = new bootstrap.Modal(document.getElementById('modal-negozio'));
-            modal.show();
         } else {
+            modal.hide();
             showError('Errore', 'Impossibile caricare i dati del negozio');
         }
     })
     .catch(error => {
+        modal.hide();
         showError('Errore di comunicazione', error);
     });
 }
@@ -462,17 +471,23 @@ function saveNegozio() {
     
     // Raccolta dati form
     const negozioId = document.getElementById('negozio-id').value;
-    const formData = new FormData(form);
     const isNewNegozio = negozioId === '0';
     
-    // Conversione FormData in oggetto
-    const negozioData = {};
-    formData.forEach((value, key) => {
-        negozioData[key] = value;
-    });
+    // Creazione manuale dell'oggetto dati per evitare problemi con FormData e file
+    const negozioData = {
+        id: negozioId,
+        nome: document.getElementById('nome').value,
+        descrizione: document.getElementById('descrizione').value || '',
+        email: document.getElementById('email').value || '',
+        whatsapp: document.getElementById('whatsapp').value || '',
+        ordinamento: document.getElementById('ordinamento').value || '0',
+        stanby: document.getElementById('negozio-stanby').checked ? 0 : 1,
+        note: document.getElementById('note').value || '',
+        json_layout_catalogo: document.getElementById('json-layout-catalogo').value || ''
+    };
     
-    // Gestione checkbox stanby (0 = attivo, 1 = sospeso)
-    negozioData.stanby = document.getElementById('negozio-stanby').checked ? 0 : 1;
+    // Debug dell'oggetto dati prima dell'invio
+    console.log('Dati negozio da inviare:', negozioData);
     
     // Prepara parametri API
     const params = {
@@ -483,7 +498,8 @@ function saveNegozio() {
     
     // Gestione upload immagine (se presente)
     const immagineFile = document.getElementById('immagine').files[0];
-    if (immagineFile) {
+    if (immagineFile && immagineFile.size > 0) {
+        console.log('Elaborazione immagine per upload:', immagineFile.name, immagineFile.size);
         const reader = new FileReader();
         reader.onload = function(e) {
             // Aggiungi base64 dell'immagine
@@ -492,6 +508,8 @@ function saveNegozio() {
         };
         reader.readAsDataURL(immagineFile);
     } else {
+        // Se non c'è immagine da caricare, procedi senza di essa
+        console.log('Nessuna immagine da caricare, invio dati senza immagine');
         sendSaveRequest(params);
     }
 }
@@ -556,35 +574,25 @@ function sendSaveRequest(params) {
  * Cambio stato negozio (attivo/sospeso)
  */
 function toggleNegozioStatus(negozioId, newStatus) {
-    // Trova il pulsante e la card per l'aggiornamento immediato
-    const negozioCards = document.querySelectorAll('.col-md-6.col-lg-4');
-    let targetBtn = null;
-    let targetCard = null;
-    let statusBar = null;
-    let statusBadge = null;
+    // Trova la card del negozio
+    const card = findNegozioCard(negozioId);
+    if (!card) {
+        showError('Errore', 'Card negozio non trovata');
+        return;
+    }
     
-    // Cerca il pulsante e altri elementi da aggiornare
-    negozioCards.forEach(card => {
-        const toggleBtn = card.querySelector('[data-btn-toggle-status]');
-        if (toggleBtn && toggleBtn.onclick && toggleBtn.onclick.toString().includes(negozioId)) {
-            targetBtn = toggleBtn;
-            targetCard = card;
-            statusBar = card.querySelector('[data-status]');
-            statusBadge = card.querySelector('[data-badge-status]');
-            
-            // Applica un overlay di caricamento
-            card.style.position = 'relative';
-            const loadingOverlay = document.createElement('div');
-            loadingOverlay.className = 'updating-overlay';
-            loadingOverlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
-            loadingOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);display:flex;justify-content:center;align-items:center;z-index:10;';
-            card.appendChild(loadingOverlay);
-        }
-    });
+    // Disabilita i controlli durante l'aggiornamento
+    const controls = card.querySelectorAll('button');
+    controls.forEach(btn => btn.disabled = true);
     
-    // Valore corretto per stanby: 0 = attivo, 1 = sospeso
-    // Se newStatus = true, vogliamo attivarlo (stanby = 0)
-    // Se newStatus = false, vogliamo sospenderlo (stanby = 1)
+    // Aggiungi overlay di caricamento
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'updating-overlay';
+    loadingOverlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+    loadingOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);display:flex;justify-content:center;align-items:center;z-index:10;';
+    card.appendChild(loadingOverlay);
+    
+    // Effettua la chiamata API
     fetchAPI({
         apicall: 'negozio',
         action: 'toggle_negozio_status',
@@ -593,65 +601,57 @@ function toggleNegozioStatus(negozioId, newStatus) {
     })
     .then(response => {
         if (response.success) {
+            // Aggiorna UI
+            updateCardStatus(card, newStatus);
             showSuccess(`Negozio ${newStatus ? 'attivato' : 'sospeso'} con successo`);
-            
-            // Aggiorna immediatamente l'interfaccia
-            if (targetBtn && targetCard) {
-                // Rimuovi overlay di caricamento
-                const overlay = targetCard.querySelector('.updating-overlay');
-                if (overlay) overlay.remove();
-                
-                // Aggiorna il colore e il testo del pulsante
-                const toggleLabel = targetBtn.querySelector('[data-toggle-label]');
-                if (toggleLabel) {
-                    toggleLabel.textContent = newStatus ? 'Sospendi' : 'Attiva';
-                }
-                
-                // Cambia lo stile del pulsante in base allo stato
-                if (newStatus) {
-                    // Negozio attivo - pulsante rosso per sospendere
-                    targetBtn.className = 'btn btn-outline-danger btn-sm';
-                } else {
-                    // Negozio sospeso - pulsante verde per attivare
-                    targetBtn.className = 'btn btn-outline-success btn-sm';
-                }
-                
-                // Aggiorna la barra di stato superiore
-                if (statusBar) {
-                    statusBar.className = newStatus ? 'card-status-top bg-success' : 'card-status-top bg-danger';
-                }
-                
-                // Aggiorna il badge di stato
-                if (statusBadge) {
-                    statusBadge.className = newStatus ? 'badge bg-success' : 'badge bg-danger';
-                    statusBadge.textContent = newStatus ? 'Attivo' : 'Sospeso';
-                }
-                
-                // Aggiorna la funzione onclick del pulsante per invertire l'azione
-                targetBtn.onclick = () => toggleNegozioStatus(negozioId, !newStatus);
-            } else {
-                // Se non siamo riusciti a trovare gli elementi, ricarica tutti i dati
-                loadNegozi();
-            }
         } else {
-            showError('Errore nel cambio stato', response.error);
-            
-            // Rimuovi l'overlay se c'è stato un errore
-            if (targetCard) {
-                const overlay = targetCard.querySelector('.updating-overlay');
-                if (overlay) overlay.remove();
-            }
+            throw new Error(response.error || 'Errore nel cambio stato');
         }
     })
     .catch(error => {
-        showError('Errore di comunicazione', error);
-        
-        // Rimuovi l'overlay in caso di errore
-        if (targetCard) {
-            const overlay = targetCard.querySelector('.updating-overlay');
-            if (overlay) overlay.remove();
-        }
+        showError('Errore', error.message || 'Errore di comunicazione');
+    })
+    .finally(() => {
+        // Riabilita i controlli e rimuovi overlay
+        controls.forEach(btn => btn.disabled = false);
+        loadingOverlay.remove();
     });
+}
+
+// Funzione helper per trovare la card di un negozio
+function findNegozioCard(negozioId) {
+    const cards = document.querySelectorAll('.col-md-6.col-lg-4');
+    return Array.from(cards).find(card => {
+        const deleteBtn = card.querySelector('[data-btn-delete]');
+        return deleteBtn && deleteBtn.onclick && deleteBtn.onclick.toString().includes(negozioId);
+    });
+}
+
+// Funzione helper per aggiornare lo stato UI della card
+function updateCardStatus(card, isActive) {
+    // Aggiorna barra di stato
+    const statusBar = card.querySelector('[data-status]');
+    if (statusBar) {
+        statusBar.className = isActive ? 'card-status-top bg-success' : 'card-status-top bg-danger';
+    }
+    
+    // Aggiorna badge
+    const statusBadge = card.querySelector('[data-badge-status]');
+    if (statusBadge) {
+        statusBadge.className = isActive ? 'badge bg-success' : 'badge bg-danger';
+        statusBadge.textContent = isActive ? 'Attivo' : 'Sospeso';
+    }
+    
+    // Aggiorna pulsante toggle
+    const toggleBtn = card.querySelector('[data-btn-toggle-status]');
+    const toggleLabel = card.querySelector('[data-toggle-label]');
+    if (toggleBtn && toggleLabel) {
+        toggleBtn.className = isActive ? 'btn btn-outline-danger btn-sm' : 'btn btn-outline-success btn-sm';
+        toggleLabel.textContent = isActive ? 'Sospendi' : 'Attiva';
+        
+        // Aggiorna handler click
+        toggleBtn.onclick = () => toggleNegozioStatus(negozioId, !isActive);
+    }
 }
 
 /**
@@ -796,29 +796,39 @@ function formatDate(dateString) {
  * @return {Promise} Promise con la risposta
  */
 function fetchAPI(params) {
-    console.log('Chiamata API:', params); // Logging della chiamata
+    console.log('Chiamata API:', params);
     
     return new Promise((resolve, reject) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // timeout 30s
+
         fetch(CONFIG.apiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
+            signal: controller.signal,
             body: JSON.stringify(params)
         })
         .then(response => {
+            clearTimeout(timeoutId);
             if (!response.ok) {
                 throw new Error(`Errore HTTP: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('Risposta API:', data); // Logging della risposta
+            console.log('Risposta API:', data);
+            if (data.error) {
+                throw new Error(data.error);
+            }
             resolve(data);
         })
         .catch(error => {
-            console.error('Errore API:', error); // Logging degli errori
-            reject(error);
+            clearTimeout(timeoutId);
+            console.error('Errore API:', error);
+            reject(error.message || 'Errore di comunicazione con il server');
         });
     });
 }

@@ -71,9 +71,7 @@ if ($curlError) {
     http_response_code(500);
     die(json_encode(["error" => "Errore cURL", "details" => $curlError]));
 }
-/*
-var_dump(http_response_code($httpCode));
-exit;*/
+
 
 // Restituisce la stessa risposta dell'API
 http_response_code($httpCode);
