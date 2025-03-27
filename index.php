@@ -6,11 +6,33 @@ include_once('includes/header.php');
 ?>
 
 <body>
-
   <header>
-    <h1>Catalogo JINGB2B</h1>
-    <!-- Eventuali menu, filtri, ecc. -->
+    <h1>JINGB2B</h1>
+
+    <!-- Filtri compatti con toggle -->
+    <div class="filter-panel">
+      <div class="filter-toggle">
+        <button id="toggleSearch" class="toggle-button active">🔍</button>
+        <button id="toggleFilter" class="toggle-button">🔢</button>
+      </div>
+
+      <div class="filter-content">
+        <div id="searchContainer" class="filter-container active">
+          <input type="text" id="searchFilter" placeholder="Cerca EAN, nome o tag...">
+        </div>
+
+        <div id="filterContainer" class="filter-container">
+          <select id="categoriaFilter"></select>
+        </div>
+      </div>
+
+      
+      <div class="filter-counter"></div>
+      <button id="resetFilters" class="filter-reset">X</button>
+    </div>
+
   </header>
+
 
   <!-- Contenitore catalogo -->
   <div class="catalog-container" id="catalogContainer"></div>
@@ -24,43 +46,43 @@ include_once('includes/header.php');
   </div>
 
   <!-- Template nascosto per le card (tuo codice) -->
-<div id="productTemplate" style="display:none;">
-  <div class="product-card" data-ean="" data-prev="0">
-    <div class='imagelayer'>
-        <img loading="lazy"  class="imgLazy" src="assets/img/notfound.jpg" alt="Immagine prodotto" />
+  <div id="productTemplate" style="display:none;">
+    <div class="product-card" data-ean="" data-prev="0">
+      <div class='imagelayer'>
+        <img loading="lazy" class="imgLazy" src="assets/img/notfound.jpg" alt="Immagine prodotto" />
         <div class='wrap_counter_cart' style="display:none;">
-        <div class='counter_cart'></div>
+          <div class='counter_cart'></div>
         </div>
-    </div>
-    <div class='flexInfo'>
-      <div class="info">
-        <div class="product-disp"></div>
-        <div class="ean-label"><span class="ean-value trueselect"></span></div>
-        <div class="product-title"></div>
       </div>
+      <div class='flexInfo'>
+        <div class="info">
+          <div class="product-disp"></div>
+          <div class="ean-label"><span class="ean-value trueselect"></span></div>
+          <div class="product-title"></div>
+        </div>
 
-      <div class='flexPrice'>
-         <div class="product-price">
+        <div class='flexPrice'>
+          <div class="product-price">
             <span class="normal-price"></span>
             <span class="promo-block">
               <del class="old-price">€ 1,23</del>
               <span class="discounted-price"></span>
             </span>
-         </div>
-         <div class="product-box"></div>
+          </div>
+          <div class="product-box"></div>
 
+        </div>
       </div>
-    </div>
-    <div class="quantity-controls">
+      <div class="quantity-controls">
         <input class="qty gost" type="number" step="" value="0" min="0" data-prev="0">
         <div class='minusplus'>
           <button class="minus"> </button>
           <button class="plus"> </button>
         </div>
         <!--<button class="check" style="display:none;">v</button>-->
+      </div>
     </div>
   </div>
-</div>
 
 
-<? include_once('includes/footer.php');?>
+  <? include_once('includes/footer.php'); ?>

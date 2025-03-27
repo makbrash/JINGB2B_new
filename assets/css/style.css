@@ -1,6 +1,16 @@
 /* CSS Document */
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap');
 
+:root {
+  --colore-principale: #ca674e; /* colore richiesto */
+  --colore-secondario: #fafafa; /* colore di sfondo */
+  --colore-testo: #333; /* colore del testo */
+  --colore-testo-secondario: #777; /* colore del testo secondario */
+  --colore-preferito: red; /* colore per il cuore preferito */
+  --colore-badge: red; /* colore per il badge del carrello */
+  --colore-bianco: #fff;
+  --colore-grigiochiaro: #ccc;
+}
 
 /* Applicazione del font al body */
 * {
@@ -42,8 +52,8 @@ html {
 
 body {
 	font-family: Arial, sans-serif;
-	color: #333;
-	background-color: #fafafa;
+	color: var(--colore-testo);
+	background-color: var(--colore-secondario);
 	overflow-x: hidden;
 	position: relative;
 	height: calc(100% - 60px);
@@ -54,7 +64,7 @@ header {
 	top: 0;
 	left: 0;
 	width: 100%;
-	background-color: #ca674e; /* colore richiesto */
+	background-color: var(--colore-principale);
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 	z-index: 1000;
 	display: flex;
@@ -83,7 +93,7 @@ nav {
 }
 .shop-select {
 	background-color: #fff;
-	color: #333;
+	color: var(--colore-testo);
 	border: none;
 	padding: 5px 10px;
 	border-radius: 5px;
@@ -107,7 +117,7 @@ nav {
 	position: absolute;
 	top: 40px;
 	left: 0;
-	background-color: #fff;
+	background-color: var(--colore-bianco);
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 	list-style: none;
 	padding: 10px;
@@ -118,7 +128,7 @@ nav {
 }
 .filter-dropdown a {
 	text-decoration: none;
-	color: #333;
+	color: var(--colore-testo);
 	font-weight: normal;
 }
 .filter-container:hover .filter-dropdown {
@@ -153,7 +163,7 @@ nav {
 /* CARD PRODOTTO */
 .product-card {
 	position: relative;
-	background-color: #fff;
+	background-color: var(--colore-bianco);
 	border-radius: 5px;
 	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 	padding: 10px;
@@ -177,7 +187,7 @@ nav {
 	          /* o width: 100% se Ã¨ contenuto in un wrapper con larghezza definita */
 	aspect-ratio: 1/1;
 	object-fit: contain;      /* adatta l'immagine al quadrato tagliando le parti in eccesso */
-	border-radius: 5px;';
+	border-radius: 5px;
 }
 .product-info {
 	width: 100%;
@@ -186,7 +196,7 @@ nav {
 }
 .product-ean {
 	font-size: 0.8rem;
-	color: #777;
+	color: var(--colore-testo-secondario);
 }
 .product-title {
 	font-size: 0.85rem;
@@ -207,7 +217,7 @@ nav {
 	margin-bottom: 5px;
 }
 .product-price del {
-	color: #b00;
+	color: var(--colore-testo-secondario);
 	font-size: 0.9rem;
 	margin-right: 5px;
 }
@@ -223,10 +233,10 @@ nav {
 	right: 10px;
 	font-size: 1.2rem;
 	cursor: pointer;
-	color: #999;
+	color: var(--colore-testo-secondario);
 }
 .fav-heart:hover {
-	color: red;
+	color:var(--colore-preferito);
 }
 /* PULSANTI + E - */
 .quantity-controls {
@@ -258,7 +268,7 @@ footer {
 	bottom: 0;
 	left: 0;
 	width: 100%;
-	background-color: #fff;
+	background-color: var(--colore-bianco);
 	text-align: center;
 	padding: 5px 10px;
 	box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
@@ -274,7 +284,7 @@ footer .footer-left {
 }
 footer .footer-left input[type=\"text\"] {
 	padding: 5px;
-	border: 1px solid #ccc;
+	border: 1px solid var(--colore-grigiochiaro);
 	border-radius: 3px;
 }
 footer .footer-right {
@@ -285,7 +295,7 @@ footer .icon-btn {
 	margin-left: 15px;
 	cursor: pointer;
 	text-decoration: none;
-	color: #333;
+	color: var(--colore-testo);
 	font-size: 1.1rem;
 	position: relative;
 }
@@ -293,8 +303,8 @@ footer .icon-btn {
 	position: absolute;
 	top: -5px;
 	right: -10px;
-	background-color: red;
-	color: #fff;
+	background-color: var(--colore-badge);
+	color: var(--colore-bianco);
 	font-size: 0.7rem;
 	padding: 2px 5px;
 	border-radius: 50%;
@@ -313,7 +323,7 @@ footer .icon-btn {
       margin-left: 5px;
       background-color: #8bc34a;
       border: none;
-      color: #fff;
+      color: var(--colore-bianco);
       padding: 5px 8px;
       border-radius: 3px;
       cursor: pointer;
@@ -340,7 +350,7 @@ footer .icon-btn {
     padding: 10px;
     height: calc(100% - 49px);
     overflow-y: auto;
-    border: 1px solid #ccc;
+    border: 1px solid var(--colore-grigiochiaro);
     position: relative;
 }
     /* Spinner infinite scroll */
@@ -414,7 +424,7 @@ span.promo-block {
     width: 100%;
     height: 100%;
     align-items: center;
-   // padding: 10px;
+    padding: 10px;
 }
 .imagelayer {
     width: 100%;
@@ -424,13 +434,13 @@ span.promo-block {
 
 .counter_cart {
     text-align: center;
-    border: solid 2px #ffffff;
+    border: solid 2px var(--colore-bianco);
     position: absolute;
     font-size: 28px;
     border-radius: 37px;
     text-align: center;
     background: #e80d0d;
-    color: #ffffff;
+    color: var(--colore-bianco);
     height: 45px;
     min-width: 45px;
     display: flex;
@@ -441,6 +451,7 @@ span.promo-block {
     padding: 13px;
     z-index: 3;
 }
+
 .wrap_counter_cart {
     width: 100%;
     height: auto;
@@ -476,7 +487,7 @@ span.promo-block {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(270deg, #ffffff00, #ffffff);
+  background: linear-gradient(270deg, #ffffff00, var(--colore-bianco));
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   pointer-events: none; /* assicura che l'overlay non blocchi i click */
@@ -495,7 +506,7 @@ span.promo-block {
   left: 0;
   width: 100%;
   height: 100%;
-   background: linear-gradient(90deg, #ffffff00, #ffffff);
+   background: linear-gradient(90deg, #ffffff00, var(--colore-bianco));
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   pointer-events: none; /* assicura che l'overlay non blocchi i click */
@@ -544,7 +555,7 @@ span.promo-block {
 #progressBar{
 	height:20px;
 	width: 0%;
-	background:#ca674e;
+	background:var(--colore-principale);
 	position: relative;
 	z-index: 1;
 	transition: all 0.3s cubic-bezier(0.39, 0.58, 0.57, 1);
@@ -564,4 +575,155 @@ div#progressBar_BG {
 
 div#progressBarWRAP > div {
     border-radius: 35px;
+}
+
+
+
+/* Layout compatto per filtri */
+.filter-panel {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  /* background-color: #f5f5f5; */
+  /* border-bottom: 1px solid #ddd; */
+}
+
+.filter-toggle {
+  display: flex;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  margin-right: 10px;
+  height: 42px;
+}
+
+.toggle-button {
+  border: none;
+  background: #eee;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 16px;
+  display: block;
+}
+
+.toggle-button.active {
+  background: #ca674e;
+  color: white;
+  display: none;
+}
+
+.filter-content {
+  flex: 1;
+  position: relative;
+  width: 265px;
+  height: 42px;
+}
+
+.filter-container {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.filter-container.active {
+  display: block;
+}
+
+.filter-search, .filter-select-advanced {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  height: 43px;
+}
+
+.filter-reset {
+  background-color: #000000;
+  color: white;
+  border: none;
+  /* padding: 6px 7px; */
+  border-radius: 28px;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 0.8em;
+  height: 22px;
+  position: absolute;
+  right: 28px;
+  width: 22px;
+}
+
+.filter-counter {
+  background-color: #b5553e;
+  padding: 5px 10px;
+  border-radius: 4px 13px 13px 4px;
+  margin-left: 10px;
+  font-size: .9em;
+  padding-right: 30px;
+  height: 28px;
+  /* display: flex; */
+  align-content: center;
+  align-items: center;
+}
+.select2-selection.select2-selection--single {
+    height: 42px!important;
+}
+
+.select2-container .select2-selection--single .select2-selection__rendered {
+    height: 42px!important;
+    /* display: flex; */
+    align-content: center;
+    align-items: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 37px!important;
+}
+
+      #searchFilter,#categoriaFilter {
+        width: 100%;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        height:42px;
+      }
+
+
+input#searchFilter:focus-visible 
+ {
+    outline-offset: 0px;
+    outline: none;
+    border: solid #ff9f87 2px;
+    background-color: #e27a60;
+    font-weight: 100;
+ }
+input#searchFilter, select2 select2-container 
+ {
+    outline-offset: 0px;
+    outline: none;
+    border: solid #a5533f 2px;
+    background-color: #cc7762;
+    color: #ffffff!important;
+    font-size: 1em;
+    font-weight: 400;
+ }
+
+
+input#searchFilter::placeholder {
+    color: #f4b4a4;
+}
+
+li#select2-categoriaFilter-result-l9g8-subcat_32 {
+    background-color: var(--colore-principale);
+}
+
+li#select2-categoriaFilter-result-bpbu-cat_5 {
+    background-color: #949494;
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: #b55741;
+}
+
+span.select2-results li {
+    font-size: .9em;
 }

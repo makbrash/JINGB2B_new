@@ -10,7 +10,7 @@ require "../config/config.php";
 
 // Imposta gli header per JSON e sicurezza
 header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: *"); 
+header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT");
 header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
@@ -50,7 +50,7 @@ switch ($method) {
                 http_response_code(200);
                 echo json_encode($records);
                 break;
-            
+
             case 'count':
                 $total = $medooDB->count("prodotti");
                 http_response_code(200);
@@ -97,7 +97,56 @@ switch ($method) {
                     "total" => $total
                 ]);
                 break;
+            case 'getCategoriesHierarchy':
+                try {
+                    // Ottieni tutte le categorie attive
+                    $categories = $medooDB->select(
+                        "categoria",
+                        ["id", "nome", "titolo", "ordinamento"],
+                        [
+                            "standby" => 0,
+                            "ORDER" => ["ordinamento" => "ASC"]
+                        ]
+                    );
 
+                    // Ottieni tutte le sottocategorie attive
+                    $subcategories = $medooDB->select(
+                        "sottocategoria",
+                        ["id", "nome", "titolo", "categoria_id", "ordinamento"],
+                        [
+                            "standby" => 0,
+                            "ORDER" => ["ordinamento" => "ASC"]
+                        ]
+                    );
+
+                    // Organizza le sottocategorie per categoria
+                    $hierarchy = [];
+                    foreach ($categories as $category) {
+                        $category['subcategories'] = [];
+                        $hierarchy[$category['id']] = $category;
+                    }
+
+                    // Aggiungi sottocategorie alle rispettive categorie
+                    foreach ($subcategories as $subcategory) {
+                        $catId = $subcategory['categoria_id'];
+                        if (isset($hierarchy[$catId])) {
+                            $hierarchy[$catId]['subcategories'][] = $subcategory;
+                        }
+                    }
+
+                    http_response_code(200);
+                    echo json_encode([
+                        "success" => true,
+                        "data" => array_values($hierarchy) // Converti in array numerico
+                    ]);
+                } catch (Exception $e) {
+                    http_response_code(500);
+                    echo json_encode([
+                        "success" => false,
+                        "error" => "Errore nel recupero della gerarchia: " . $e->getMessage()
+                    ]);
+                }
+                break;
             // Qui puoi aggiungere tutte le altre azioni che vuoi gestire via POST
 
             default:
@@ -152,4 +201,3 @@ switch ($method) {
         echo json_encode(["error" => "Metodo non supportato"]);
         break;
 }
-?>
