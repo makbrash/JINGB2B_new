@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Mattoni X1Y2Z2 - Versione Migliorata</title>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #2c3e50;
+      color: #ecf0f1;
+    }
+    #canvasContainer {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      position: relative;
+    }
+    #toolbar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 15px;
+      background: rgba(44, 62, 80, 0.8);
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      border: 1px solid #34495e;
+      backdrop-filter: blur(5px);
+      z-index: 100;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      font-weight: 500;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    #statusInfo {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      padding: 10px 15px;
+      background: rgba(44, 62, 80, 0.7);
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 100;
+    }
+    #colorPicker {
+      margin: 10px 5px;
+      display: block;
+    }
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 200;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+<div id="canvasContainer">
+  <div id="toolbar">
+    <button id="deleteSelected">Elimina Selezionato</button>
+    <button id="rotateSelected">Ruota Selezionato (R)</button>
+    <label for="colorPicker">Colore Mattone:</label>
+    <input type="color" id="colorPicker" value="#8B4513">
+    <div>
+      <small>Click Sx = Aggiungi/Seleziona, Dx = Elimina, Drag = Sposta</small>
+    </div>
+  </div>
+  <div id="statusInfo">Pronto</div>
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<!-- Import map per 'three' -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.151.3/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.151.3/examples/jsm/controls/OrbitControls.js';
+
+  let scene, camera, renderer, orbitControls;
+  let raycaster, mouse;
+  let ground;
+  let bricks = [];
+  let selectedObject = null;
+  let dragPlane = new THREE.Plane();
+  let dragOffset = new THREE.Vector3();
+
+  // Parametri mattone X=1, Y=2, Z=2
+  const BRICK_DIM = { x: 1, y: 2, z: 2 };
+
+  // Snap a griglia per gli assi X e Z
+  const SNAP_GRID = 1;
+
+  // Memorizziamo la rotazione e il colore da applicare ai nuovi mattoni
+  let lastRotationZ = 0;
+  let currentBrickColor = 0x8B4513;
+
+  // Variabili per rilevare se è un click o un drag
+  let isDragging = false;
+  let dragStartPos = { x: 0, y: 0 };
+  const DRAG_THRESHOLD = 5; // se spostiamo il mouse più di 5px => consideriamo drag
+
+  init();
+  animate();
+
+  function init() {
+    const container = document.getElementById('canvasContainer');
+    const statusInfo = document.getElementById('statusInfo');
+    const tooltip = document.getElementById('tooltip');
+
+    // Scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x34495e);
+    scene.fog = new THREE.Fog(0x34495e, 20, 100);
+
+    // Camera
+    camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(10, 15, 25);
+
+    // Renderer con antialiasing e supporto per ombre
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // INVERSIONE CONTROLLI: 
+    // OrbitControls ora ruota col tasto SINISTRO (per permettere click destro = erase)
+    orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.mouseButtons = {
+  LEFT: null,
+  MIDDLE: THREE.MOUSE.DOLLY,
+  RIGHT: THREE.MOUSE.ROTATE // Ora ruota col destro
+};
+    orbitControls.enablePan = false;
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.05;
+
+    // Luci
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(10, 20, 10);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 50;
+    dirLight.shadow.camera.left = -20;
+    dirLight.shadow.camera.right = 20;
+    dirLight.shadow.camera.top = 20;
+    dirLight.shadow.camera.bottom = -20;
+    scene.add(dirLight);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+
+    // Highlight light - luce che seguirà l'oggetto selezionato
+    const highlightLight = new THREE.PointLight(0xffffff, 0.5, 10);
+    highlightLight.position.set(0, 5, 0);
+    highlightLight.visible = false;
+    scene.add(highlightLight);
+    window.highlightLight = highlightLight; // per accedervi facilmente
+
+    // Raycaster + mouse
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    // Pavimento con griglia
+    const gridSize = 50;
+    const gridDivisions = 50;
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x444444, 0x222222);
+    scene.add(gridHelper);
+
+    const planeGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
+    const planeMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x95a5a6, 
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    ground = new THREE.Mesh(planeGeometry, planeMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01; // appena sotto la griglia per evitare z-fighting
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Eventi mouse
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Pulsanti
+    document.getElementById('deleteSelected').addEventListener('click', () => {
+      if (selectedObject) {
+        deleteBrick(selectedObject);
+        updateStatusInfo("Mattone eliminato");
+      }
+    });
+    document.getElementById('rotateSelected').addEventListener('click', () => {
+      rotateSelected();
+      updateStatusInfo("Mattone ruotato sull'asse Z");
+    });
+
+    // Color picker
+    document.getElementById('colorPicker').addEventListener('input', (e) => {
+      currentBrickColor = new THREE.Color(e.target.value).getHex();
+      updateStatusInfo(`Colore impostato: ${e.target.value}`);
+    });
+
+    // Rotazione con tasto R
+    window.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'r') {
+        rotateSelected();
+        updateStatusInfo("Mattone ruotato sull'asse Z (tasto R)");
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Aggiunto anche cancellazione con tasti Delete o Backspace
+        if (selectedObject) {
+          deleteBrick(selectedObject);
+          updateStatusInfo("Mattone eliminato (tasto Delete)");
+        }
+      }
+    });
+
+    // Resize
+    window.addEventListener('resize', onWindowResize);
+    
+    // Preveniamo il menu contestuale del tasto destro
+    window.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    }, false);
+
+    // Funzione per aggiornare lo stato
+    function updateStatusInfo(text) {
+      statusInfo.textContent = text;
+      // Reset dopo 2 secondi
+      setTimeout(() => {
+        statusInfo.textContent = "Pronto";
+      }, 2000);
+    }
+
+    // Tooltip per mattoni
+    function showTooltip(x, y, text) {
+      tooltip.style.left = `${x + 15}px`;
+      tooltip.style.top = `${y + 15}px`;
+      tooltip.textContent = text;
+      tooltip.style.opacity = 1;
+    }
+
+    function hideTooltip() {
+      tooltip.style.opacity = 0;
+    }
+
+    window.updateStatusInfo = updateStatusInfo;
+    window.showTooltip = showTooltip;
+    window.hideTooltip = hideTooltip;
+  }
+
+  function onMouseDown(event) {
+    // Salviamo la posizione di partenza per distinguere click/drag
+    dragStartPos.x = event.clientX;
+    dragStartPos.y = event.clientY;
+    isDragging = false; // lo diventa vero se ci muoviamo oltre soglia
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const intersects = raycastScene(mouse);
+
+    // INVERSIONE LOGICA: tasto destro (event.button === 2) per eliminare
+    if (event.button === 2) {
+      if (intersects.length > 0 && intersects[0].object !== ground) {
+        // Click destro su mattone => elimina
+        deleteBrick(intersects[0].object);
+        window.updateStatusInfo("Mattone eliminato (tasto destro)");
+        event.preventDefault(); // Impedisce menu contestuale
+        return;
+      }
+    }
+
+    // Il resto è tasto sinistro (event.button === 0)
+    if (event.button !== 0) return;
+
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      const clickedObj = hit.object;
+
+      if (clickedObj === ground) {
+        // Aggiunge un mattone sul floor
+        addBrick(hit.point.x, 0, hit.point.z);
+        window.updateStatusInfo("Mattone aggiunto sul pavimento");
+      } else {
+        // È un parallelepipedo
+        if (hit.face && hit.face.normal.y > 0.9) {
+          // Cliccata la faccia top => aggiunge un mattone sopra
+          const bb = new THREE.Box3().setFromObject(clickedObj);
+          const topY = bb.max.y;
+          addBrick(hit.point.x, topY, hit.point.z);
+          window.updateStatusInfo("Mattone aggiunto sopra");
+        } else {
+          // Fianco => selezioniamo per drag su X e Z
+          selectBrick(clickedObj, hit.point);
+          
+          // Creiamo un piano per il drag che passa attraverso l'oggetto
+          // e parallelo al terreno (Y costante)
+          dragPlane.setFromNormalAndCoplanarPoint(
+            new THREE.Vector3(0, 1, 0),
+            clickedObj.position.clone()
+          );
+          
+          // Calcoliamo l'offset dal punto cliccato all'origine dell'oggetto
+          // per mantenere la stessa distanza durante il drag
+          raycaster.setFromCamera(mouse, camera);
+          const planeIntersect = new THREE.Vector3();
+          raycaster.ray.intersectPlane(dragPlane, planeIntersect);
+          dragOffset.subVectors(clickedObj.position, planeIntersect);
+          
+          window.updateStatusInfo("Mattone selezionato");
+        }
+      }
+    } else {
+      // Clic nel vuoto => deseleziona
+      deselectBrick();
+    }
+  }
+
+  function onMouseMove(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    // Tooltip e evidenziazione al passaggio del mouse
+    const intersects = raycastScene(mouse);
+    if (intersects.length > 0 && intersects[0].object !== ground) {
+      const hoverObj = intersects[0].object;
+      if (hoverObj !== selectedObject) {
+        hoverObj.material.emissive = new THREE.Color(0x222222);
+        setTimeout(() => {
+          if (hoverObj !== selectedObject) {
+            hoverObj.material.emissive = new THREE.Color(0x000000);
+          }
+        }, 100);
+      }
+      window.showTooltip(event.clientX, event.clientY, "Sx = Seleziona/Sposta, Dx = Elimina");
+    } else {
+      window.hideTooltip();
+    }
+
+    // Gestione del drag con tasto sinistro
+    if (event.buttons !== 1) return; // solo se tasto sinistro premuto
+
+    // Se ci siamo spostati oltre soglia, isDragging = true
+    const dx = event.clientX - dragStartPos.x;
+    const dy = event.clientY - dragStartPos.y;
+    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD) {
+      isDragging = true;
+      orbitControls.enabled = false; // Disabilitiamo orbit durante il drag
+    }
+
+    if (isDragging && selectedObject) {
+      // Trasciniamo su X e Z
+      raycaster.setFromCamera(mouse, camera);
+      const planeIntersect = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
+        // Aggiungiamo l'offset per mantenere la distanza dal punto originale
+        planeIntersect.add(dragOffset);
+        
+        // Salviamo vecchia posizione per il check collisioni
+        const oldPos = selectedObject.position.clone();
+        
+        // Aggiorniamo X e Z con snap a griglia
+        selectedObject.position.x = planeIntersect.x;
+        selectedObject.position.z = planeIntersect.z;
+        snapToGrid(selectedObject);
+
+        // Controlliamo collisione
+        if (checkCollision(selectedObject)) {
+          // Evidenziamo collisione
+          highlightCollision(selectedObject, true);
+          
+          // Con la nuova logica, permettiamo posizionamenti tangenti
+          // quindi cerchiamo solo posizioni adiacenti, non a distanza
+          selectedObject.position.copy(oldPos); // Ripristiniamo temporaneamente
+          window.updateStatusInfo("Posizione non valida - collisione!");
+        } else {
+          highlightCollision(selectedObject, false);
+          window.updateStatusInfo("Posizione valida!");
+        }
+        
+        // Aggiorniamo la luce highlight sulla posizione del mattone selezionato
+        window.highlightLight.position.set(
+          selectedObject.position.x,
+          selectedObject.position.y + 3,
+          selectedObject.position.z
+        );
+        window.highlightLight.visible = true;
+      }
+    }
+  }
+
+  function onMouseUp(event) {
+    // Riattiviamo orbit controls
+    orbitControls.enabled = true;
+    
+    // NON eliminiamo più il mattone con click sinistro
+    // Deseleziona solo se abbiamo trascinato
+    if (isDragging && selectedObject) {
+      window.updateStatusInfo("Mattone riposizionato");
+      deselectBrick(); // Deseleziona dopo il drag
+    }
+    
+    isDragging = false;
+  }
+
+  // ================== Funzioni Principali ==================
+
+  // Aggiunge un mattone in posX, posY, posZ con la rotazione memorizzata
+  function addBrick(posX, posY, posZ) {
+    // Creiamo la geometria con bordi arrotondati per un aspetto migliore
+    const geo = new THREE.BoxGeometry(BRICK_DIM.x, BRICK_DIM.y, BRICK_DIM.z);
+    
+    // Materiale avanzato con texture e riflessi
+    const mat = new THREE.MeshStandardMaterial({
+      color: currentBrickColor,
+      roughness: 0.7,
+      metalness: 0.1
+    });
+    
+    const brick = new THREE.Mesh(geo, mat);
+
+    // Altezza a posY + half
+    const halfY = BRICK_DIM.y / 2;
+    brick.position.set(
+      Math.round(posX / SNAP_GRID) * SNAP_GRID,
+      posY + halfY,
+      Math.round(posZ / SNAP_GRID) * SNAP_GRID
+    );
+
+    // Applica rotazione sull'asse Z (invece che Y)
+    brick.rotation.x = lastRotationZ;
+    
+    // Ombre
+    brick.castShadow = true;
+    brick.receiveShadow = true;
+
+    scene.add(brick);
+    bricks.push(brick);
+    
+    // Controlliamo subito se c'è una collisione
+    if (checkCollision(brick)) {
+      // Semplicemente logghiamo la collisione senza spostare il mattone
+      window.updateStatusInfo("Attenzione: collisione rilevata!");
+      highlightCollision(brick, true);
+    }
+    
+    return brick;
+  }
+
+  // Seleziona un parallelepipedo per trascinarlo
+  function selectBrick(brick, hitPoint) {
+    // Se c'è un oggetto selezionato, resettiamo l'emissive
+    deselectBrick();
+
+    selectedObject = brick;
+    // Evidenziamo
+    selectedObject.material.emissive = new THREE.Color(0x444444);
+    
+    // Accendiamo la luce di highlight
+    window.highlightLight.position.set(
+      selectedObject.position.x,
+      selectedObject.position.y + 3,
+      selectedObject.position.z
+    );
+    window.highlightLight.visible = true;
+  }
+
+  // Deseleziona
+  function deselectBrick() {
+    if (selectedObject) {
+      selectedObject.material.emissive = new THREE.Color(0x000000);
+      window.highlightLight.visible = false;
+    }
+    selectedObject = null;
+  }
+
+  // Cancella un mattone
+  function deleteBrick(brick) {
+    scene.remove(brick);
+    bricks = bricks.filter(b => b !== brick);
+    if (selectedObject === brick) {
+      selectedObject = null;
+      window.highlightLight.visible = false;
+    }
+  }
+
+  // Rotazione sull'asse Z invece che Y (memorizziamo per successivi add)
+  function rotateSelected() {
+  if (selectedObject) {
+    // Salviamo la vecchia rotazione
+    const oldRot = selectedObject.rotation.y;
+    
+    // Ruotiamo di 90 gradi sull'asse Y
+    selectedObject.rotation.y += Math.PI / 2;
+    
+    // Normalizziamo tra 0 e 2*PI
+    selectedObject.rotation.y = selectedObject.rotation.y % (2 * Math.PI);
+    
+    // Aggiorna la variabile globale
+    lastRotationY = selectedObject.rotation.y;
+    
+    // Controlliamo collisione dopo la rotazione
+    if (checkCollision(selectedObject)) {
+      // Se c'è collisione, ripristiniamo la rotazione originale
+      selectedObject.rotation.y = oldRot;
+      window.updateStatusInfo("Impossibile ruotare: collisione rilevata");
+    } else {
+      window.updateStatusInfo("Mattone ruotato");
+    }
+  }
+}
+
+  // Snap su X e Z
+  function snapToGrid(obj) {
+    obj.position.x = Math.round(obj.position.x / SNAP_GRID) * SNAP_GRID;
+    obj.position.z = Math.round(obj.position.z / SNAP_GRID) * SNAP_GRID;
+  }
+
+  // Evidenzia in rosso se collisione, verde se posizione valida
+  function highlightCollision(obj, state) {
+    if (state) {
+      // Rosso per collisione
+      obj.material.emissive = new THREE.Color(0x880000);
+    } else {
+      // Verde per posizione valida durante drag
+      if (isDragging && obj === selectedObject) {
+        obj.material.emissive = new THREE.Color(0x008800);
+      }
+      // Blu per mattone selezionato non in drag
+      else if (obj === selectedObject) {
+        obj.material.emissive = new THREE.Color(0x444466);
+      } 
+      // Nessun colore per mattoni normali
+      else {
+        obj.material.emissive = new THREE.Color(0x000000);
+      }
+    }
+  }
+
+  // Questa funzione ora cerca una posizione tangente a un mattone esistente
+  // anziché cercare uno spazio libero a distanza arbitraria
+  function findNearestFreePosition(movingBrick, oldPos) {
+    // Salviamo la posizione originale
+    const original = oldPos.clone();
+    
+    // Proviamo prima con posizioni tangenti agli altri mattoni
+    // Creiamo un array di posizioni da provare
+    const positionsToTry = [];
+    
+    // Per ogni mattone, proviamo le posizioni adiacenti
+    for (const b of bricks) {
+      if (b === movingBrick) continue;
+      
+      const bb = new THREE.Box3().setFromObject(b);
+      
+      // Aggiungiamo le 4 posizioni laterali (X+, X-, Z+, Z-)
+      const bSize = new THREE.Vector3();
+      bb.getSize(bSize);
+      
+      // Posizione X+
+      positionsToTry.push(new THREE.Vector3(
+        bb.max.x + BRICK_DIM.x/2,
+        b.position.y, 
+        b.position.z
+      ));
+      
+      // Posizione X-
+      positionsToTry.push(new THREE.Vector3(
+        bb.min.x - BRICK_DIM.x/2,
+        b.position.y, 
+        b.position.z
+      ));
+      
+      // Posizione Z+
+      positionsToTry.push(new THREE.Vector3(
+        b.position.x,
+        b.position.y, 
+        bb.max.z + BRICK_DIM.z/2
+      ));
+      
+      // Posizione Z-
+      positionsToTry.push(new THREE.Vector3(
+        b.position.x,
+        b.position.y, 
+        bb.min.z - BRICK_DIM.z/2
+      ));
+      
+      // Posizione sopra (Y+)
+      positionsToTry.push(new THREE.Vector3(
+        b.position.x,
+        bb.max.y + BRICK_DIM.y/2, 
+        b.position.z
+      ));
+    }
+    
+    // Ordiniamo per distanza dalla posizione originale
+    positionsToTry.sort((a, b) => {
+      const distA = a.distanceTo(original);
+      const distB = b.distanceTo(original);
+      return distA - distB;
+    });
+    
+    // Proviamo ogni posizione
+    for (const pos of positionsToTry) {
+      movingBrick.position.copy(pos);
+      snapToGrid(movingBrick);
+      
+      // Se non c'è collisione, abbiamo trovato la posizione libera
+      if (!checkCollision(movingBrick)) {
+        return movingBrick.position.clone();
+      }
+    }
+    
+    // Fallback: Algoritmo a spirale per trovare posizione libera
+    const maxDist = 5; // Limita la ricerca a 5 unità
+    for (let dist = 1; dist <= maxDist; dist++) {
+      for (let dx = -dist; dx <= dist; dx++) {
+        for (let dz = -dist; dz <= dist; dz++) {
+          // Verifichiamo solo i punti sul perimetro del quadrato
+          if (Math.abs(dx) === dist || Math.abs(dz) === dist) {
+            movingBrick.position.x = original.x + dx;
+            movingBrick.position.z = original.z + dz;
+            snapToGrid(movingBrick);
+            
+            if (!checkCollision(movingBrick)) {
+              return movingBrick.position.clone();
+            }
+          }
+        }
+      }
+    }
+    
+    // Se non troviamo nulla, torniamo alla posizione originale
+    return original;
+  }
+
+  // Controllo collisione boundingBox completamente rivisto
+  function checkCollision(movingBrick) {
+    // Otteniamo le dimensioni effettive dopo la rotazione
+    const movingBB = new THREE.Box3().setFromObject(movingBrick);
+    
+    for (const b of bricks) {
+      if (b === movingBrick) continue;
+      
+      const otherBB = new THREE.Box3().setFromObject(b);
+      
+      // Controlliamo se i bounding box si intersecano
+      if (movingBB.intersectsBox(otherBB)) {
+        // Otteniamo le dimensioni lungo tutti gli assi
+        const movingYMin = movingBB.min.y;
+        const movingYMax = movingBB.max.y;
+        const otherYMin = otherBB.min.y;
+        const otherYMax = otherBB.max.y;
+        
+        // Tolleranza per errori di precisione
+        const tolerance = 0.01;
+        
+        // CASE 1: Permettiamo l'essere complanari (un mattone esattamente sopra l'altro)
+        const isStackedVertically = 
+          (Math.abs(movingYMin - otherYMax) < tolerance) || 
+          (Math.abs(movingYMax - otherYMin) < tolerance);
+        
+        if (isStackedVertically) {
+          // Sono complanari, non c'è collisione
+          return false;
+        }
+        
+        // CASE 2: Permettiamo mattoni adiacenti (tangenti) lateralmente
+        // Controlliamo se sono esattamente adiacenti su X o Z
+        
+        // Calcoliamo distanze tra facce
+        const touchingX = 
+          (Math.abs(movingBB.min.x - otherBB.max.x) < tolerance) || 
+          (Math.abs(movingBB.max.x - otherBB.min.x) < tolerance);
+        
+        const touchingZ = 
+          (Math.abs(movingBB.min.z - otherBB.max.z) < tolerance) || 
+          (Math.abs(movingBB.max.z - otherBB.min.z) < tolerance);
+        
+        // Se sono adiacenti (tangenti) su almeno un asse, non c'è collisione
+        if (touchingX || touchingZ) {
+          return false;
+        }
+        
+        // Altrimenti c'è collisione (intersezione)
+        return true;
+      }
+    }
+    
+    // Non ci sono intersezioni
+    return false;
+  }
+
+  // Raycast comodo
+  function raycastScene(normMouse) {
+    raycaster.setFromCamera(normMouse, camera);
+    const allObjects = bricks.concat(ground);
+    return raycaster.intersectObjects(allObjects);
+  }
+
+  // Loop di animazione
+  function animate() {
+    requestAnimationFrame(animate);
+    orbitControls.update();
+    renderer.render(scene, camera);
+  }
+
+  function onWindowResize() {
+    const container = document.getElementById('canvasContainer');
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  }
+</script>
+
+</body>
+</html>

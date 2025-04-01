@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dwsync>
-<file name="clienti.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133874924165602716" remote="133874924400000000" Dst="1" />
+<file name="clienti.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133874924165602716" remote="133874888400000000" Dst="2" />
 <file name="index.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133874269901521462" remote="133874172000000000" Dst="1" />
 <file name="negozi.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875052112857147" remote="133875052200000000" Dst="1" />
-<file name="comparatore_dati_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875152971315508" remote="133875153000000000" Dst="1" />
+<file name="comparatore_dati_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875726970780837" remote="133879287600000000" Dst="2" />
 <file name="import_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875151743163013" remote="133875151800000000" Dst="1" />
 <file name="upload_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875151743173003" remote="133875151800000000" Dst="1" />
 <file name="split_json.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875149830559824" remote="133875151800000000" Dst="1" />
+<file name="classificatore.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133880049398299083" remote="133880013600000000" Dst="2" />
+<file name="classificatore_api.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133875922166687102" remote="133875893400000000" Dst="2" />
+<file name="classificatore_backend.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133880163912529705" remote="133880130600000000" Dst="2" />
+<file name="classificatore_ajax.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133880048979490164" remote="133880013600000000" Dst="2" />
+<file name="3dtest.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133876030023522035" remote="133876029600000000" Dst="1" />
+<file name="3dtest.html" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133876451004047296" remote="133876450800000000" Dst="1" />
+<file name="sincronizza_catalogo.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879475383728494" remote="133879440000000000" Dst="2" />
+<file name="process.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879929020448516" remote="133879893000000000" Dst="2" />
+<file name="ripristina_catalogo.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879911250706437" remote="133879875600000000" Dst="2" />
+<file name="debug_clasificazione.log" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879851600000000" remote="133879851600000000" Dst="2" />
+<file name="fetch_images.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133880171689151943" remote="133880136000000000" Dst="2" />
+<file name="save_image.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133880108255898683" remote="133880071800000000" Dst="2" />
+<file name="prodotto.jpg" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133880111400000000" remote="133880111400000000" Dst="2" />
 </dwsync>

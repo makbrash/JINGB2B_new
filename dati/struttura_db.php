@@ -15,7 +15,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL & ~E_DEPRECATED);
 
 // Carica la connessione al database
-require_once "../includes/db.php";
+//require_once "../includes/db.php";
 
 /**
  * Esegue tutte le query necessarie per aggiornare la struttura del database

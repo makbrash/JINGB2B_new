@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name="AutoFilter.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134161910424" remote="133853683200000000" Dst="2" />
+<file name="BaseDrawing.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134161910424" remote="133853683200000000" Dst="2" />
+<file name="AutoFit.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134161900432" remote="133853683200000000" Dst="2" />
+<file name="CellIterator.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134162857049" remote="133853683200000000" Dst="2" />
+<file name="Column.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134162857049" remote="133853683200000000" Dst="2" />
+<file name="ColumnCellIterator.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134162857049" remote="133853683200000000" Dst="2" />
+<file name="ColumnDimension.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134163856025" remote="133853683200000000" Dst="2" />
+<file name="Dimension.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134163876009" remote="133853683200000000" Dst="2" />
+<file name="ColumnIterator.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134163856025" remote="133853683200000000" Dst="2" />
+<file name="HeaderFooter.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134165670006" remote="133853683200000000" Dst="2" />
+<file name="Drawing.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134165660008" remote="133853683200000000" Dst="2" />
+<file name="MemoryDrawing.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134166748885" remote="133853683200000000" Dst="2" />
+<file name="Iterator.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134166758883" remote="133853683200000000" Dst="2" />
+<file name="HeaderFooterDrawing.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134166748885" remote="133853683200000000" Dst="2" />
+<file name="PageMargins.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134168212445" remote="133853683200000000" Dst="2" />
+<file name="PageSetup.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134168342451" remote="133853683200000000" Dst="2" />
+<file name="PageBreak.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134168202453" remote="133853683200000000" Dst="2" />
+<file name="Pane.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134169181444" remote="133853683200000000" Dst="2" />
+<file name="Protection.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134169211562" remote="133853683200000000" Dst="2" />
+<file name="ProtectedRange.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134169181444" remote="133853683200000000" Dst="2" />
+<file name="Row.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134170140608" remote="133853683200000000" Dst="2" />
+<file name="RowDimension.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134170160719" remote="133853683200000000" Dst="2" />
+<file name="RowCellIterator.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134170140608" remote="133853683200000000" Dst="2" />
+<file name="RowIterator.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134171099483" remote="133853683200000000" Dst="2" />
+<file name="SheetView.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134171099483" remote="133853683200000000" Dst="2" />
+<file name="Table.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134172118774" remote="133853683200000000" Dst="2" />
+<file name="Validations.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134172148839" remote="133853683200000000" Dst="2" />
+<file name="Worksheet.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134173827126" remote="133853683200000000" Dst="2" />
+</dwsync>

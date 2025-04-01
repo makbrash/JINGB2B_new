@@ -46,7 +46,7 @@ switch ($method) {
         $action = $_GET['action'] ?? '';
         switch ($action) {
             case 'list':
-                $records = $medooDB->select("prodotti", "*");
+                $records = $medooDB->select("prodotti", "*", ['ORDER' => 'titolo']);
                 http_response_code(200);
                 echo json_encode($records);
                 break;

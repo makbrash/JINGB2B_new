@@ -9,20 +9,19 @@ let catalogLoaded = false;
 let categoriesLoaded = false;
 let hierarchyData = [];
 
+
 // Funzione di inizializzazione principale
+
 $(document).ready(function() {
     console.log("Filter.js caricato");
-    
     // Inizializza toggle tra ricerca e filtri
     initToggleButtons();
-    
     // Ricerca testuale
     $(document).on('input', '#searchFilter', function() {
         console.log("Ricerca: " + $(this).val());
         currentFilters.searchText = $(this).val();
         applyFilters();
     });
-    
     // Reset filtri
     $(document).on('click', '#resetFilters', function() {
         console.log("Reset filtri");
@@ -144,7 +143,7 @@ function initCategoryDropdown(categories) {
     
     // Seleziona primo elemento
     if (options.length > 0) {
-        $('#categoriaFilter').val(options[0].id).trigger('change');
+        $('#categoriaFilter').val(options[1].id).trigger('change');
     }
 }
 

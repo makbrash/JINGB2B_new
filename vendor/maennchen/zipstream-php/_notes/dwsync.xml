@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name=".editorconfig" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133869535386" remote="133730335800000000" Dst="2" />
+<file name=".gitattributes" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133869545380" remote="133730335800000000" Dst="2" />
+<file name=".gitignore" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133898438855" remote="133730335800000000" Dst="2" />
+<file name=".php-cs-fixer.dist.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133899258010" remote="133730335800000000" Dst="2" />
+<file name=".tool-versions" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133900105391" remote="133730335800000000" Dst="2" />
+<file name="LICENSE" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133900415289" remote="133730335800000000" Dst="2" />
+<file name="README.md" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133901114515" remote="133730335800000000" Dst="2" />
+<file name="composer.json" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133901144506" remote="133730335800000000" Dst="2" />
+<file name="phpdoc.dist.xml" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133924647703" remote="133730335800000000" Dst="2" />
+<file name="phpunit.xml.dist" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133925337190" remote="133730335800000000" Dst="2" />
+<file name="psalm.xml" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133925337190" remote="133730335800000000" Dst="2" />
+<file name="results.sarif" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133926286132" remote="133730335800000000" Dst="2" />
+</dwsync>

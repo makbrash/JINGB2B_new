@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name="BaseReader.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134103114286" remote="133853683200000000" Dst="2" />
+<file name="Csv.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134104168686" remote="133853683200000000" Dst="2" />
+<file name="DefaultReadFilter.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134104188505" remote="133853683200000000" Dst="2" />
+<file name="Exception.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134105117724" remote="133853683200000000" Dst="2" />
+<file name="Gnumeric.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134106107369" remote="133853683200000000" Dst="2" />
+<file name="Html.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134106836803" remote="133853683200000000" Dst="2" />
+<file name="IReadFilter.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134106836803" remote="133853683200000000" Dst="2" />
+<file name="IReader.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134106836803" remote="133853683200000000" Dst="2" />
+<file name="Ods.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134109860698" remote="133853683200000000" Dst="2" />
+<file name="Slk.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134110690264" remote="133853683200000000" Dst="2" />
+<file name="XlsBase.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134117586808" remote="133853683200000000" Dst="2" />
+<file name="Xls.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134118376101" remote="133853683200000000" Dst="2" />
+<file name="Xlsx.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134125012303" remote="133853683200000000" Dst="2" />
+<file name="Xml.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879134127939675" remote="133853683200000000" Dst="2" />
+</dwsync>

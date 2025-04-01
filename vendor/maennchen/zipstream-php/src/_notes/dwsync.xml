@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name="CentralDirectoryFileHeader.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133926296015" remote="133730335800000000" Dst="2" />
+<file name="CompressionMethod.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133927135300" remote="133730335800000000" Dst="2" />
+<file name="DataDescriptor.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133927275113" remote="133730335800000000" Dst="2" />
+<file name="EndOfCentralDirectory.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133927834446" remote="133730335800000000" Dst="2" />
+<file name="Exception.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133931443698" remote="133730335800000000" Dst="2" />
+<file name="File.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133931443698" remote="133730335800000000" Dst="2" />
+<file name="GeneralPurposeBitFlag.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133942140425" remote="133730335800000000" Dst="2" />
+<file name="LocalFileHeader.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133942150399" remote="133730335800000000" Dst="2" />
+<file name="OperationMode.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133942829844" remote="133730335800000000" Dst="2" />
+<file name="PackField.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133942839692" remote="133730335800000000" Dst="2" />
+<file name="Version.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133943519134" remote="133730335800000000" Dst="2" />
+<file name="Time.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133943610134" remote="133730335800000000" Dst="2" />
+<file name="ZipStream.php" server="ftp.quarrataweb.it/distribuzione.quarrataweb.it/" local="133879133955699598" remote="133730335800000000" Dst="2" />
+</dwsync>
