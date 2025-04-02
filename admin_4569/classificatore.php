@@ -195,7 +195,7 @@ $page_title = "Classificatore Avanzato Prodotti con AI";
                             </div>
                             
                             <div class="stat-card">
-                                <div class="stat-label">Da elaborare</div>
+                                <div class="stat-label">Da Completare</div>
                                 <div id="stat-pending" class="stat-value"><?php echo $stats['prodotti_da_elaborare']; ?></div>
                             </div>
                             
@@ -307,6 +307,44 @@ $page_title = "Classificatore Avanzato Prodotti con AI";
     <div id="product-detail-modal" class="modal">
         <div class="modal-content">
             <!-- Contenuto caricato dinamicamente -->
+        </div>
+    </div>
+    
+    <!-- Modal selezione immagini -->
+    <div id="image-selection-modal" class="modal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h2>Seleziona un'immagine per il prodotto</h2>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="image-grid" class="image-selection-grid">
+                    <!-- Le immagini saranno caricate qui dinamicamente -->
+                    <div class="loader">Caricamento immagini...</div>
+                </div>
+                
+                <div class="url-input-container">
+                    <h3>Oppure inserisci un URL diretto</h3>
+                    <div class="input-group">
+                        <input type="text" id="direct-image-url" placeholder="https://esempio.com/immagine.jpg" class="full-width">
+                        <button id="save-direct-url" class="button button-primary">Salva URL</button>
+                    </div>
+                </div>
+                
+                <div class="file-upload-container">
+                    <h3>Oppure carica un'immagine dal tuo computer</h3>
+                    <form id="upload-image-form" enctype="multipart/form-data">
+                        <input type="hidden" id="upload-ean" name="ean" value="">
+                        <input type="hidden" name="action" value="upload_file">
+                        <div class="input-group">
+                            <input type="file" id="image-file" name="image_file" accept="image/*" class="full-width">
+                            <button type="submit" id="upload-image-btn" class="button button-primary">Carica</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div id="image-selection-status" class="status-message"></div>
+            </div>
         </div>
     </div>
     

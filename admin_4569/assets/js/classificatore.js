@@ -127,7 +127,8 @@ $(document).ready(function() {
     });
     
     // Handler per dettagli prodotto
-    $('#products-container').on('click', '.product-title', function() {
+    $('#products-container').on('click', '.product-title', function(e) {
+        e.preventDefault(); // Previene lo scrolling della pagina
         const productId = $(this).data('id');
         mostraDettagliProdotto(productId);
     });
@@ -330,13 +331,6 @@ function mostraStatistiche(stats) {
     }
     
     $('#brand-stats').html(brandsHtml);
-    
-    // Aggiungi handler di click per filtrare per marca
-    $('#brand-stats').off('click', '.stat-bar-item').on('click', '.stat-bar-item', function() {
-        const marcaId = $(this).data('marca-id');
-        $('#marca-filter').val(marcaId).trigger('change');
-        caricaProdotti();
-    });
     
     // Aggiungi statistiche sottocategorie
     mostraStatisticheSottocategorie(stats);
@@ -741,7 +735,7 @@ function mostraProdotti(products) {
         switch(product.stato_tag) {
             case 0:
                 statusClass = 'status-pending';
-                statusText = 'Da elaborare';
+                statusText = 'Completa';
                 break;
             case 1:
                 statusClass = 'status-done';
@@ -769,7 +763,7 @@ function mostraProdotti(products) {
         }
         
         // Formatta percorso immagine
-        const imgSrc = product.immagine ? `../public/catalogo/${product.immagine}` : 'img/no-image.jpg';
+        const imgSrc = product.immagine ? `../public/catalogo/${product.immagine}?t=${new Date().getTime()}` : 'img/no-image.jpg';
         
         // Determina se il prodotto è selezionato
         const isChecked = appState.selectedProductIds.includes(product.id.toString()) ? 'checked' : '';
@@ -778,7 +772,7 @@ function mostraProdotti(products) {
             <tr data-id="${product.id}" class="${statusClass}">
                 <td><input type="checkbox" class="product-checkbox" value="${product.id}" ${isChecked}></td>
                 <td>${product.id}</td>
-                <td><img src="${imgSrc}" class="product-thumbnail" alt="Immagine prodotto"></td>
+                <td><img src="${imgSrc}" class="product-thumbnail" alt="Immagine prodotto" title="Clicca per selezionare un'immagine"></td>
                 <td>
                     ${product.ean ? `<div class="product-ean">${product.ean}</div>` : ''}
                     <a href="#" class="product-title" data-id="${product.id}">${product.titolo}</a>
@@ -1108,7 +1102,7 @@ function mostraDettagliProdotto(productId) {
     }
     
     // Formatta percorso immagine
-    const imgSrc = product.immagine ? `../public/catalogo/${product.immagine}` : 'img/no-image.jpg';
+    const imgSrc = product.immagine ? `../public/catalogo/${product.immagine}?t=${new Date().getTime()}` : 'img/no-image.jpg';
     
     // Costruisci contenuto modal
     const modalContent = `
@@ -1120,7 +1114,8 @@ function mostraDettagliProdotto(productId) {
             
             <div class="product-detail-body">
                 <div class="product-detail-image">
-                    <img src="${imgSrc}" alt="Immagine prodotto">
+                    <img src="${imgSrc}" alt="Immagine prodotto" class="detail-image" data-id="${product.id}">
+                    <div class="image-edit-button">Modifica immagine</div>
                 </div>
                 
                 <div class="product-detail-info">
@@ -1165,6 +1160,15 @@ function mostraDettagliProdotto(productId) {
         const productId = $(this).data('id');
         elaboraSingoloProdotto(productId);
         $('#product-detail-modal').hide();
+    });
+    
+    // Event handler per modifica immagine
+    $('.detail-image, .image-edit-button').on('click', function() {
+        if (product && product.ean && /^\d+$/.test(product.ean)) {
+            mostraSelettoreImmagini(product);
+        } else {
+            mostraNotifica('Prodotto senza codice EAN valido, impossibile recuperare immagini', 'error');
+        }
     });
 }
 
@@ -1745,6 +1749,437 @@ function inizializzaRecuperoImmagini() {
     $('#btn-deselect-all').on('click', function() {
         $btnFetchImages.prop('disabled', true);
     });
+    
+    // Handler per click sulle immagini dei prodotti
+    $('#products-container').on('click', '.product-thumbnail', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const $row = $(this).closest('tr');
+        const productId = $row.data('id');
+        const prodotto = appState.productsList.find(p => p.id.toString() === productId.toString());
+        
+        if (prodotto && prodotto.ean && /^\d+$/.test(prodotto.ean)) {
+            mostraSelettoreImmagini(prodotto);
+        } else {
+            mostraNotifica('Prodotto senza codice EAN valido, impossibile recuperare immagini', 'error');
+        }
+    });
+    
+    // Chiudi modale quando si clicca sulla X
+    $('#image-selection-modal .modal-close').on('click', function() {
+        $('#image-selection-modal').hide();
+    });
+    
+    // Handler per selezione immagine
+    $('#image-grid').on('click', '.image-option', function() {
+        $('.image-option').removeClass('selected');
+        $(this).addClass('selected');
+    });
+    
+    // Handler per salvataggio URL diretto
+    $('#save-direct-url').on('click', function() {
+        const url = $('#direct-image-url').val().trim();
+        const ean = $(this).data('ean');
+        
+        if (!url) {
+            mostraMessaggioStato('Inserisci un URL valido', 'error');
+            return;
+        }
+        
+        if (!ean) {
+            mostraMessaggioStato('EAN mancante', 'error');
+            return;
+        }
+        
+        salvaImmagineURL(ean, url);
+    });
+}
+
+/**
+ * Mostra il selettore di immagini per un prodotto
+ */
+function mostraSelettoreImmagini(prodotto) {
+    // Prepara la modale
+    $('#image-grid').html('<div class="loader">Caricamento immagini...</div>');
+    $('#image-selection-status').removeClass('success error').hide();
+    $('#direct-image-url').val('');
+    $('#save-direct-url').data('ean', prodotto.ean);
+    $('#upload-ean').val(prodotto.ean);
+    
+    // Mostra la modale
+    $('#image-selection-modal').show();
+    
+    // Gestione form di upload
+    $('#upload-image-form').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Verifica che il file sia stato selezionato
+        const fileInput = $('#image-file')[0];
+        if (!fileInput.files || fileInput.files.length === 0) {
+            mostraMessaggioStato('Seleziona un file da caricare', 'error');
+            return;
+        }
+        
+        const fileSize = fileInput.files[0].size;
+        const fileName = fileInput.files[0].name;
+        const fileType = fileInput.files[0].type;
+        
+        // Controllo dimensione massima (10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (fileSize > maxSize) {
+            mostraMessaggioStato(`File troppo grande (${(fileSize / (1024 * 1024)).toFixed(2)}MB). Il limite è di 10MB.`, 'error');
+            return;
+        }
+        
+        // Controllo tipo file
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(fileType)) {
+            mostraMessaggioStato(`Tipo di file non supportato: ${fileType}. Sono accettati solo JPG, PNG e GIF.`, 'error');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        
+        mostraMessaggioStato(`Caricamento in corso di ${fileName} (${(fileSize / 1024).toFixed(2)}KB)...`, 'info');
+        
+        $.ajax({
+            url: 'fetch_images.php',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    mostraMessaggioStato('Immagine caricata con successo', 'success');
+                    
+                    // Aggiorna l'immagine nella UI
+                    const prodottoObj = appState.productsList.find(p => p.ean.toString() === prodotto.ean.toString());
+                    if (prodottoObj) {
+                        const $prodottoRow = $(`tr[data-id="${prodottoObj.id}"]`);
+                        if ($prodottoRow.length) {
+                            const $imgCell = $prodottoRow.find('td img');
+                            if ($imgCell.length) {
+                                const timestamp = new Date().getTime(); // Evita caching
+                                $imgCell.attr('src', `../public/catalogo/${prodotto.ean}.jpg?t=${timestamp}`);
+                            }
+                        }
+                    }
+                    
+                    // Chiudi la modale dopo 1.5 secondi
+                    setTimeout(function() {
+                        $('#image-selection-modal').hide();
+                    }, 1500);
+                } else {
+                    // Mostra dettagli dell'errore se disponibili
+                    let errorMessage = response.message || 'Errore nel caricamento del file';
+                    
+                    // Aggiungi dettagli se presenti
+                    if (response.details) {
+                        // Formatta i dettagli in modo leggibile
+                        let detailsText = '';
+                        
+                        if (response.details.file_info) {
+                            const info = response.details.file_info;
+                            detailsText += `\nFile: ${info.name}, Dimensione: ${(info.size / 1024).toFixed(2)}KB, Tipo: ${info.type}`;
+                        }
+                        
+                        if (response.details.php_config) {
+                            const config = response.details.php_config;
+                            detailsText += `\nLimiti server: max_filesize=${config.upload_max_filesize}, post_size=${config.post_max_size}`;
+                        }
+                        
+                        // Aggiungi i dettagli al messaggio
+                        if (detailsText) {
+                            errorMessage += `\n\nDettagli: ${detailsText}`;
+                        }
+                    }
+                    
+                    mostraMessaggioStato(errorMessage, 'error');
+                    
+                    // Log per debugging
+                    console.error('Errore upload:', response);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Errore AJAX:', xhr.responseText);
+                
+                // Cerca di parsare la risposta per vedere se contiene dettagli
+                let errorMsg = 'Errore di connessione al server. Verifica la connessione e riprova.';
+                let isFormatError = false;
+                
+                try {
+                    if (xhr.responseText) {
+                        // Controlla se la risposta contiene tag HTML (errori PHP)
+                        if (xhr.responseText.includes('<br />') || xhr.responseText.includes('<b>')) {
+                            console.log('Risposta contiene errori PHP, estraendo JSON se possibile');
+                            
+                            // Cerchiamo di estrarre la parte JSON dalla risposta
+                            const jsonStartPos = xhr.responseText.indexOf('{');
+                            if (jsonStartPos !== -1) {
+                                const jsonPart = xhr.responseText.substring(jsonStartPos);
+                                const response = JSON.parse(jsonPart);
+                                
+                                if (response && response.success === true) {
+                                    // Se il JSON indica successo, nonostante avvisi PHP, procedi come se tutto fosse ok
+                                    mostraMessaggioStato('Immagine caricata con successo (ci sono stati avvisi sul server)', 'success');
+                                    
+                                    // Aggiorna l'immagine nella UI
+                                    const prodottoObj = appState.productsList.find(p => p.ean.toString() === prodotto.ean.toString());
+                                    if (prodottoObj) {
+                                        const $prodottoRow = $(`tr[data-id="${prodottoObj.id}"]`);
+                                        if ($prodottoRow.length) {
+                                            const $imgCell = $prodottoRow.find('td img');
+                                            if ($imgCell.length) {
+                                                const timestamp = new Date().getTime(); // Evita caching
+                                                $imgCell.attr('src', `../public/catalogo/${prodotto.ean}.jpg?t=${timestamp}`);
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Chiudi la modale dopo 1.5 secondi
+                                    setTimeout(function() {
+                                        $('#image-selection-modal').hide();
+                                    }, 1500);
+                                    
+                                    return;
+                                }
+                                
+                                if (response && response.message) {
+                                    errorMsg = response.message;
+                                    // Aggiungi gli stessi controlli per i dettagli come nel blocco originale
+                                    // Controlla se è un errore di formato immagine
+                                    isFormatError = errorMsg.includes('Formato immagine non supportato') || 
+                                                   errorMsg.includes('Impossibile elaborare l\'immagine');
+                                    
+                                    // Aggiungi dettagli se presenti
+                                    if (response.details) {
+                                        errorMsg += '\n\nDettagli:';
+                                        if (response.details.file_name) {
+                                            errorMsg += `\nFile: ${response.details.file_name}`;
+                                        }
+                                        if (response.details.detected_type) {
+                                            errorMsg += `\nTipo rilevato: ${response.details.detected_type}`;
+                                        }
+                                        if (response.details.info) {
+                                            errorMsg += `\n\n${response.details.info}`;
+                                        }
+                                    }
+                                }
+                            } else {
+                                errorMsg = 'Si sono verificati errori PHP sul server. Controlla i log per maggiori dettagli.';
+                            }
+                        } else {
+                            // Gestione JSON standard come prima
+                            const response = JSON.parse(xhr.responseText);
+                            if (response && response.message) {
+                                errorMsg = response.message;
+                                
+                                // Controlla se è un errore di formato immagine
+                                isFormatError = errorMsg.includes('Formato immagine non supportato') || 
+                                                errorMsg.includes('Impossibile elaborare l\'immagine');
+                                
+                                // Aggiungi dettagli se presenti
+                                if (response.details) {
+                                    errorMsg += '\n\nDettagli:';
+                                    if (response.details.file_name) {
+                                        errorMsg += `\nFile: ${response.details.file_name}`;
+                                    }
+                                    if (response.details.detected_type) {
+                                        errorMsg += `\nTipo rilevato: ${response.details.detected_type}`;
+                                    }
+                                    if (response.details.info) {
+                                        errorMsg += `\n\n${response.details.info}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Errore nel parsing della risposta:', e);
+                }
+                
+                mostraMessaggioStato(errorMsg, 'error', isFormatError);
+            }
+        });
+    });
+    
+    // Recupera multiple immagini
+    $.ajax({
+        url: 'fetch_images.php',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            action: 'fetch_multiple',
+            ean: prodotto.ean,
+            description: prodotto.titolo || ''
+        },
+        success: function(response) {
+            if (response.success && response.data && response.data.images) {
+                renderizzaGrigliaImmagini(response.data.images, prodotto.ean);
+            } else {
+                $('#image-grid').html('<div class="empty-state">Nessuna immagine trovata</div>');
+                mostraMessaggioStato(response.message || 'Errore nel recupero delle immagini', 'error');
+            }
+        },
+        error: function() {
+            $('#image-grid').html('<div class="empty-state">Errore di connessione</div>');
+            mostraMessaggioStato('Errore di connessione al server', 'error');
+        }
+    });
+}
+
+/**
+ * Renderizza la griglia delle immagini
+ */
+function renderizzaGrigliaImmagini(images, ean) {
+    if (!images || images.length === 0) {
+        $('#image-grid').html('<div class="empty-state">Nessuna immagine trovata</div>');
+        return;
+    }
+    
+    let html = '';
+    images.forEach((imageUrl, index) => {
+        html += `
+            <div class="image-option" data-url="${imageUrl}">
+                <img src="${imageUrl}" alt="Opzione ${index + 1}">
+            </div>
+        `;
+    });
+    
+    html += `
+        <div class="image-option-actions">
+            <button id="btn-save-selected-image" class="button button-success" data-ean="${ean}">Salva immagine selezionata</button>
+        </div>
+    `;
+    
+    $('#image-grid').html(html);
+    
+    // Handler per pulsante salvataggio
+    $('#btn-save-selected-image').on('click', function() {
+        const $selected = $('.image-option.selected');
+        if ($selected.length === 0) {
+            mostraMessaggioStato('Seleziona prima un\'immagine', 'error');
+            return;
+        }
+        
+        const url = $selected.data('url');
+        const ean = $(this).data('ean');
+        
+        salvaImmagineURL(ean, url);
+    });
+}
+
+/**
+ * Salva un'immagine da URL
+ */
+function salvaImmagineURL(ean, url) {
+    mostraMessaggioStato('Salvataggio in corso...', 'info');
+    
+    // Verifica se l'URL contiene domini problematici noti
+    const dominiProblematici = ['idealo.com', 'amazon.com', 'amazon.it', 'ebay.com', 'ebay.it'];
+    const isDominioProblematico = dominiProblematici.some(dominio => url.includes(dominio));
+    
+    // Mostra avviso se l'URL potrebbe essere problematico
+    if (isDominioProblematico) {
+        mostraMessaggioStato('Attenzione: Questo dominio potrebbe bloccare il download diretto. Tentativo di recupero in corso...', 'warning');
+    }
+    
+    $.ajax({
+        url: 'fetch_images.php',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            action: 'save_url',
+            ean: ean,
+            image_url: url
+        },
+        success: function(response) {
+            if (response.success) {
+                mostraMessaggioStato('Immagine salvata con successo', 'success');
+                
+                // Aggiorna l'immagine nella UI se il prodotto è visualizzato
+                const prodotto = appState.productsList.find(p => p.ean.toString() === ean.toString());
+                if (prodotto) {
+                    const $prodottoRow = $(`tr[data-id="${prodotto.id}"]`);
+                    if ($prodottoRow.length) {
+                        const $imgCell = $prodottoRow.find('td img');
+                        if ($imgCell.length) {
+                            const timestamp = new Date().getTime(); // Evita caching
+                            $imgCell.attr('src', `../public/catalogo/${ean}.jpg?t=${timestamp}`);
+                        }
+                    }
+                }
+                
+                // Chiudi la modale dopo 1.5 secondi
+                setTimeout(function() {
+                    $('#image-selection-modal').hide();
+                }, 1500);
+            } else {
+                // Se fallisce il metodo diretto e si tratta di un dominio problematico,
+                // suggeriamo all'utente di salvare manualmente l'immagine
+                if (isDominioProblematico) {
+                    mostraMessaggioStato(
+                        'Impossibile scaricare direttamente l\'immagine da questo sito. ' +
+                        'Prova a scaricare l\'immagine manualmente sul tuo computer e poi carica il file.', 
+                        'error'
+                    );
+                } else {
+                    mostraMessaggioStato(response.message || 'Errore nel salvataggio dell\'immagine', 'error');
+                }
+            }
+        },
+        error: function() {
+            if (isDominioProblematico) {
+                mostraMessaggioStato(
+                    'Impossibile connettersi a questo tipo di URL. Questo è un limite di sicurezza del sito di origine. ' +
+                    'Prova con un\'altra immagine o scarica manualmente l\'immagine e poi caricala.',
+                    'error'
+                );
+            } else {
+                mostraMessaggioStato('Errore di connessione al server', 'error');
+            }
+        }
+    });
+}
+
+/**
+ * Mostra un messaggio di stato nella modale
+ */
+function mostraMessaggioStato(message, type, withRetry = false) {
+    const $status = $('#image-selection-status');
+    
+    // Rimuovi eventuali pulsanti di retry esistenti
+    $status.find('.retry-btn').remove();
+    
+    // Aggiorna il contenuto e lo stile
+    $status.removeClass('success error warning info')
+           .addClass(type)
+           .html(message)
+           .show();
+    
+    // Aggiungi pulsante per riprovare (solo per errori di formato)
+    if (withRetry && type === 'error') {
+        $status.append(`
+            <div style="margin-top: 15px;">
+                <p>Suggerimenti:</p>
+                <ul style="margin-left: 20px; margin-bottom: 10px;">
+                    <li>Prova a convertire l'immagine in JPG usando un programma di grafica</li>
+                    <li>Verifica che l'immagine non sia danneggiata</li>
+                    <li>Riduci le dimensioni dell'immagine (massimo 1024x1024)</li>
+                </ul>
+                <button class="button retry-btn">Prova un'altra immagine</button>
+            </div>
+        `);
+        
+        // Aggiungi handler al pulsante
+        $status.find('.retry-btn').on('click', function() {
+            // Reset del form
+            $('#image-file').val('');
+            $status.hide();
+        });
+    }
 }
 
 /**
