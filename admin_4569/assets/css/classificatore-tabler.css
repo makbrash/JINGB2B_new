@@ -1,0 +1,245 @@
+/**
+ * classificatore-tabler.css - Stili specifici per l'interfaccia di classificazione prodotti
+ * Versione compatibile con Tabler UI Framework
+ */
+
+/* Stili specifici del classificatore che non sono presenti in Tabler */
+
+/* Stati prodotti nella tabella */
+.table tr.status-pending {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.table tr.status-done {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.table tr.status-error {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Stili per i tag */
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.tag-prodotto {
+    background-color: #cfe2ff !important;
+    color: #084298 !important;
+}
+
+.tag-tipologia {
+    background-color: #d1e7dd !important;
+    color: #0a5239 !important;
+}
+
+.tag-variante {
+    background-color: #f8d7da !important;
+    color: #842029 !important;
+}
+
+/* Modifiche statistiche */
+.stat-bar-container {
+    height: 8px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    margin: 5px 0;
+    overflow: hidden;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    background-color: #206bc4;
+    width: 0;
+    transition: width 0.5s ease-in-out;
+}
+
+.stat-bar-item {
+    margin-bottom: 10px;
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.stat-bar-item:hover {
+    background-color: rgba(32, 107, 196, 0.1);
+}
+
+.stat-bar-label {
+    font-size: 14px;
+    color: #444;
+}
+
+.stat-bar-value {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+}
+
+/* Stili per le selezioni immagini */
+.image-selection-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.image-option {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border: 2px solid #e6e7e9;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+}
+
+.image-option img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.image-option:hover {
+    border-color: #206bc4;
+}
+
+.image-option.selected {
+    border-color: #206bc4;
+    box-shadow: 0 0 0 2px rgba(32, 107, 196, 0.25);
+}
+
+.image-option.selected::after {
+    content: '\2713';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background-color: #206bc4;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+/* Stili per i dettagli prodotto */
+.product-detail-image {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #e6e7e9;
+    border-radius: 4px;
+    text-align: center;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.product-detail-image img {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+}
+
+.image-edit-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #206bc4;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.8;
+}
+
+.image-edit-button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Stile messaggi di stato */
+.status-message {
+    white-space: pre-line;
+    padding: 12px 15px;
+    border-radius: 4px;
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.status-message.info {
+    background-color: #e2ecf9;
+    border-left: 4px solid #206bc4;
+    color: #206bc4;
+}
+
+.status-message.success {
+    background-color: #e6f3e6;
+    border-left: 4px solid #2fb344;
+    color: #2fb344;
+}
+
+.status-message.error {
+    background-color: #f9e2e2;
+    border-left: 4px solid #d63939;
+    color: #d63939;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.status-message.warning {
+    background-color: #fff9e2;
+    border-left: 4px solid #f59f00;
+    color: #f59f00;
+}
+
+/* Stile per il campo modificabile inline */
+.editable-field {
+    cursor: pointer;
+    border-bottom: 1px dashed #ccc;
+    padding: 2px 4px;
+    transition: all 0.2s;
+}
+
+.editable-field:hover {
+    background-color: #f0f8ff;
+}
+
+.editable-field.editing {
+    background-color: #f0f8ff;
+    border-bottom: 1px solid #206bc4;
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+    .image-selection-grid {
+        justify-content: center;
+    }
+}
+
+/* Stile per i tag cloud */
+#tag-cloud {
+    line-height: 2;
+}
+
+#tag-cloud .badge {
+    margin: 3px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#tag-cloud .badge:hover {
+    transform: scale(1.05);
+} 

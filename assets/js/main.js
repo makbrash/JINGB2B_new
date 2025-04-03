@@ -64,11 +64,103 @@ function getAllProductsFromDB() {
  * @param {Array} products - Array di prodotti (ciascuno con product.immagine).
  * @param {Number} chunkSize - Dimensione del blocco (default 50).
  */
+// Nuova funzione da aggiungere a assets/js/main.js
 
 /**
+ * Scarica solo i prodotti modificati (rispetto all'ultimo aggiornamento)
+ * e le nuove immagini.
+ */
+async function downloadModifiedProducts() {
+  console.log("downloadModifiedProducts chiamato");
+  showProgressBar();
+
+  try {
+    if (!navigator.onLine) {
+      alert("Sei offline, impossibile aggiornare il catalogo.");
+      hideProgressBar();
+      return;
+    }
+
+    // 1) Ottieni la versione locale attualmente salvata
+    const localVersion = localStorage.getItem("jingb2b_version") || "1970-01-01 00:00:00";
+    
+    // 2) Richiedi i dati modificati dall'ultimo aggiornamento
+    const response = await $.ajax({
+      url: "/api/getModifiedData.php",
+      type: "POST",
+      dataType: "json",
+      contentType: "application/json",
+      data: JSON.stringify({ 
+        last_update: localVersion 
+      }),
+    });
+    
+    if (!response.success) {
+      console.log("Errore getModifiedData:", response.error);
+      hideProgressBar();
+      return;
+    }
+    
+    // 3) Estrai i dati dalla risposta
+    const prodottiModificati = response.prodotti_modificati || [];
+    const eansImmaginiModificate = response.immagini_modificate || [];
+    const nuovaVersione = response.last_update;
+    
+    console.log(`Prodotti modificati: ${prodottiModificati.length}`);
+    console.log(`Immagini modificate: ${eansImmaginiModificate.length}`);
+    
+    // 4) Se ci sono aggiornamenti...
+    if (prodottiModificati.length > 0) {
+      // Ottieni tutti i prodotti dal DB locale
+      const prodottiEsistenti = await getAllProductsFromDB();
+      
+      // Crea un dizionario per accesso rapido
+      const prodottiMap = {};
+      prodottiEsistenti.forEach(prod => {
+        prodottiMap[prod.ean] = prod;
+      });
+      
+      // Aggiorna il dizionario con i nuovi dati
+      prodottiModificati.forEach(prod => {
+        prodottiMap[prod.ean] = prod;
+      });
+      
+      // Converti in array e salva in IndexedDB
+      const prodottiAggiornati = Object.values(prodottiMap);
+      await saveProductsToDB(prodottiAggiornati);
+    }
+    
+    // 5) Se ci sono immagini modificate, scaricale
+    if (eansImmaginiModificate.length > 0) {
+      // Filtra prodotti con immagini modificate
+      const prodottiConImmaginiModificate = (prodottiModificati.length > 0 ? prodottiModificati : await getAllProductsFromDB())
+        .filter(prod => eansImmaginiModificate.includes(prod.ean));
+      
+      // Scarica solo le immagini modificate
+      if (prodottiConImmaginiModificate.length > 0) {
+        await prefetchImagesInChunks(prodottiConImmaginiModificate, 10);
+      }
+    }
+    
+    // 6) Aggiorna la versione locale
+    localStorage.setItem("jingb2b_version", nuovaVersione);
+    
+    // 7) Notifica all'utente
+    hideProgressBar();
+    alert(`Aggiornamento completato:\n- ${prodottiModificati.length} prodotti aggiornati\n- ${eansImmaginiModificate.length} immagini aggiornate`);
+    
+    // 8) Ricarica i prodotti dal DB
+    renderProductsFromDB();
+    
+  } catch (err) {
+    console.error("downloadModifiedProducts() error:", err);
+    hideProgressBar();
+  }
+}
+/**
  * Verifica se esiste una versione più recente del catalogo
- * (usando l’endpoint /api/getLastUpdate.php) e, se necessario,
- * chiede all’utente se vuole scaricare tutto.
+ * (usando l'endpoint /api/getLastUpdate.php) e, se necessario,
+ * chiede all'utente se vuole scaricare tutto.
  */
 async function checkAndUpdateCatalog() {
   try {
@@ -90,12 +182,18 @@ async function checkAndUpdateCatalog() {
     const serverVersion = resp.lastUpdate;
     const localVersion = localStorage.getItem("jingb2b_version") || "";
 
-    // Se c’è una versione più nuova
+    // Se c'è una versione più nuova
     if (serverVersion > localVersion) {
-      if (
-        confirm("Nuova versione del catalogo disponibile. Vuoi aggiornare?")
-      ) {
-        await downloadAllProducts();
+      if (confirm("Nuova versione del catalogo disponibile. Vuoi aggiornare?")) {
+        // Verifica se è la prima installazione o un aggiornamento
+        if (!localVersion) {
+          // Prima installazione: scarica tutto
+          await downloadAllProducts();
+        } else {
+          // Aggiornamento: scarica solo le modifiche
+          await downloadModifiedProducts();
+        }
+        
         localStorage.setItem("jingb2b_version", serverVersion);
         // Ricarichiamo i prodotti dal DB e li mostriamo
         renderProductsFromDB();
@@ -106,7 +204,7 @@ async function checkAndUpdateCatalog() {
   }
 }
 /**
- * Scarica l’elenco completo dei prodotti (POST action:list) e
+ * Scarica l'elenco completo dei prodotti (POST action:list) e
  * li salva su IndexedDB, poi pre-carica le immagini (facoltativo).
  */
 async function downloadAllProducts() {
@@ -125,7 +223,7 @@ async function downloadAllProducts() {
     // 1) Controlla spazio e chiedi storage persistente se necessario
     await checkAndRequestStorage(approxNeededMB);
 
-    // 2) Scarica l’elenco prodotti
+    // 2) Scarica l'elenco prodotti
     const response = await $.ajax({
       url: "/api/proxy_request.php",
       type: "POST",
@@ -213,7 +311,7 @@ async function checkAndRequestStorage(approxNeededMB) {
 
 /**
  * Scarica le immagini a blocchi (chunk) con un timeout su ciascuna fetch.
- * Se un’immagine fallisce, la registra in missingImages.
+ * Se un'immagine fallisce, la registra in missingImages.
  *
  * @param {Array} products - Array di prodotti con { immagine: 'nome.jpg', ... }
  * @param {Number} chunkSize - Dimensione del blocco, es. 50
@@ -555,12 +653,11 @@ function hideProgressBar() {
    ========================================= */
 // *** Inizializzazione "on document ready" ***
 $(document).ready(function () {
-
   catalogLoaded = true;
-// Carica categorie se non già caricate
-if (typeof loadCategoriesHierarchy === 'function') {
+  // Carica categorie se non già caricate
+  if (typeof loadCategoriesHierarchy === "function") {
     loadCategoriesHierarchy();
-}
+  }
 
   // Inizializza IndexedDB
   initDB()
@@ -601,3 +698,4 @@ if (typeof loadCategoriesHierarchy === 'function') {
     }
   });
 });
+

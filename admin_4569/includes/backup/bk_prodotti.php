@@ -5,7 +5,7 @@
 
 /**
  * Crea un backup della tabella prodotti
- * @return int ID del backup creato
+ * @return int ID del backup creato o false in caso di errore
  */
 function createDatabaseBackup() {
     global $medooDB;
@@ -26,6 +26,14 @@ function createDatabaseBackup() {
         ]);
         
         $backupId = $medooDB->id();
+        
+        // Prima di procedere, verifica che la struttura delle tabelle sia compatibile
+        $checkStructureResult = checkTableStructures();
+        if ($checkStructureResult !== true) {
+            // C'è un problema con le strutture delle tabelle
+            error_log("Errore nella verifica delle strutture: " . $checkStructureResult);
+            return false;
+        }
         
         // Ottiene struttura tabella prodotti per poter copiare tutte le colonne automaticamente
         $columnsQuery = "SHOW COLUMNS FROM prodotti";
@@ -90,6 +98,47 @@ function cleanupOldBackups($keepCount = 5) {
         error_log("Eliminati " . count($oldBackupIds) . " backup vecchi");
     } catch (Exception $e) {
         error_log("Errore nell'eliminazione dei backup vecchi: " . $e->getMessage());
+    }
+}
+
+/**
+ * Controlla che la struttura delle tabelle sia compatibile
+ * @return bool|string true se tutto ok, altrimenti messaggio di errore
+ */
+function checkTableStructures() {
+    global $medooDB;
+    
+    try {
+        // Ottiene colonne della tabella prodotti
+        $prodottiColumnsQuery = "SHOW COLUMNS FROM prodotti";
+        $stmt = $medooDB->pdo->prepare($prodottiColumnsQuery);
+        $stmt->execute();
+        $prodottiColumns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $prodottiColumnsNames = array_column($prodottiColumns, 'Field');
+        
+        // Ottiene colonne della tabella prodotti_backup_data
+        $backupColumnsQuery = "SHOW COLUMNS FROM prodotti_backup_data";
+        $stmt = $medooDB->pdo->prepare($backupColumnsQuery);
+        $stmt->execute();
+        $backupColumns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $backupColumnsNames = array_column($backupColumns, 'Field');
+        
+        // Rimuove le colonne speciali (id, backup_id, product_id) dall'elenco dei backup
+        $backupColumnsNames = array_diff($backupColumnsNames, ['id', 'backup_id', 'product_id']);
+        
+        // Rimuove 'id' dai nomi delle colonne prodotti, poiché diventa product_id nel backup
+        $prodottiColumnsForCompare = array_diff($prodottiColumnsNames, ['id']);
+        
+        // Controlla se ci sono colonne in prodotti che non esistono in backup_data
+        $missingColumns = array_diff($prodottiColumnsForCompare, $backupColumnsNames);
+        
+        if (!empty($missingColumns)) {
+            return "Le seguenti colonne sono presenti in 'prodotti' ma mancano in 'prodotti_backup_data': " . implode(", ", $missingColumns);
+        }
+        
+        return true;
+    } catch (Exception $e) {
+        return "Errore nel controllo struttura tabelle: " . $e->getMessage();
     }
 }
 
@@ -205,34 +254,73 @@ function syncBackupTableColumns() {
 }
 
 /**
- * Ripristina un backup della tabella prodotti
+ * Ripristina i prodotti da un backup specifico, seguendo esattamente la logica dell'immagine
  * @param int $backupId ID del backup da ripristinare
- * @return bool True se il ripristino è avvenuto con successo
+ * @return array Array con risultato dell'operazione
  */
-function restoreBackup($backupId) {
+function restoreProductsFromBackup($backupId) {
     global $medooDB;
     
     try {
-        // Debug log
-        error_log("Inizio ripristino backup ID: " . $backupId);
-        
         // Verifica che il backup esista
         $backup = $medooDB->get('prodotti_backups', '*', ['id' => $backupId]);
         if (!$backup) {
-            error_log("Errore: Backup ID " . $backupId . " non trovato");
-            throw new Exception("Backup non trovato");
+            return [
+                'success' => false,
+                'message' => "Backup ID {$backupId} non trovato",
+                'error' => true
+            ];
         }
         
-        error_log("Backup trovato: " . $backup['backup_name']);
+        // Verifica compatibilità delle strutture
+        $checkStructureResult = checkTableStructures();
+        if ($checkStructureResult !== true) {
+            return [
+                'success' => false,
+                'message' => $checkStructureResult,
+                'error' => true,
+                'error_message' => "Le colonne di prodotti sono diverse da prodotti_backup_data. " . $checkStructureResult
+            ];
+        }
         
-        // Ottiene la struttura della tabella di backup
+        // Verifica se esistono dati di backup
+        $countQuery = "SELECT COUNT(*) FROM prodotti_backup_data WHERE backup_id = :backup_id";
+        $stmt = $medooDB->pdo->prepare($countQuery);
+        $stmt->execute([':backup_id' => $backupId]);
+        $count = $stmt->fetchColumn();
+        
+        if ($count == 0) {
+            return [
+                'success' => false,
+                'message' => "Nessun dato trovato per il backup ID {$backupId}",
+                'error' => true
+            ];
+        }
+        
+        // Verifica e correggi EAN duplicati se necessario (molto raro)
+        $duplicateQuery = "SELECT ean, COUNT(*) AS num 
+                           FROM prodotti_backup_data 
+                           WHERE backup_id = :backup_id AND ean IS NOT NULL AND ean != ''
+                           GROUP BY ean 
+                           HAVING num > 1";
+        $stmt = $medooDB->pdo->prepare($duplicateQuery);
+        $stmt->execute([':backup_id' => $backupId]);
+        $duplicates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (!empty($duplicates)) {
+            return [
+                'success' => false,
+                'message' => "Impossibile ripristinare: il backup contiene EAN duplicati",
+                'error' => true,
+                'error_message' => "Il backup contiene " . count($duplicates) . " EAN duplicati"
+            ];
+        }
+        
+        // Ottiene la struttura delle colonne per il ripristino
         $backupColumnsQuery = "SHOW COLUMNS FROM prodotti_backup_data";
         $stmt = $medooDB->pdo->prepare($backupColumnsQuery);
         $stmt->execute();
         $backupColumns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Debug log
-        error_log("Numero colonne trovate: " . count($backupColumns));
         
         // Crea l'elenco delle colonne escludendo quelle non pertinenti
         $columnsList = [];
@@ -243,69 +331,114 @@ function restoreBackup($backupId) {
         }
         $columnsString = implode(', ', $columnsList);
         
-        error_log("Colonne da ripristinare: " . $columnsString);
+        // Log per debug
+        error_log("Inizio ripristino backup ID: " . $backupId . ", righe da ripristinare: " . $count);
         
-        // Verifica se esistono dati di backup
-        $countQuery = "SELECT COUNT(*) FROM prodotti_backup_data WHERE backup_id = :backup_id";
-        $stmt = $medooDB->pdo->prepare($countQuery);
-        $stmt->execute([':backup_id' => $backupId]);
-        $count = $stmt->fetchColumn();
-        
-        error_log("Numero di record nel backup: " . $count);
-        
-        if ($count == 0) {
-            error_log("Errore: Nessun dato trovato per il backup ID " . $backupId);
-            throw new Exception("Nessun dato trovato per questo backup");
+        try {
+            // Usiamo una tabella temporanea per evitare problemi con i vincoli
+            // 1. Creiamo una tabella temporanea senza vincoli
+            $dropTempTableQuery = "DROP TABLE IF EXISTS temp_prodotti";
+            $medooDB->pdo->exec($dropTempTableQuery);
+            
+            $createTempTableQuery = "CREATE TABLE temp_prodotti LIKE prodotti";
+            $medooDB->pdo->exec($createTempTableQuery);
+            
+            // Rimuoviamo tutti i vincoli dalla tabella temporanea
+            $dropIndexesQuery = "
+                SELECT CONCAT('ALTER TABLE temp_prodotti DROP INDEX ', index_name, ';')
+                FROM information_schema.statistics
+                WHERE table_schema = DATABASE()
+                AND table_name = 'temp_prodotti'
+                AND index_name <> 'PRIMARY'
+            ";
+            $indexesToDrop = $medooDB->pdo->query($dropIndexesQuery)->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($indexesToDrop as $dropIndexQuery) {
+                $medooDB->pdo->exec($dropIndexQuery);
+            }
+            
+            error_log("Tabella temporanea creata senza vincoli");
+            
+            // 2. Inseriamo i dati del backup nella tabella temporanea
+            $insertTempQuery = "INSERT INTO temp_prodotti (id, {$columnsString}) 
+                                SELECT product_id, {$columnsString}
+                                FROM prodotti_backup_data 
+                                WHERE backup_id = :backup_id";
+            
+            $stmt = $medooDB->pdo->prepare($insertTempQuery);
+            $result = $stmt->execute([':backup_id' => $backupId]);
+            
+            if (!$result) {
+                $errorInfo = $stmt->errorInfo();
+                throw new Exception("Errore nell'inserimento dati nella tabella temporanea: " . implode(" ", $errorInfo));
+            }
+            
+            $rowsInserted = $stmt->rowCount();
+            error_log("Inseriti {$rowsInserted} record nella tabella temporanea");
+            
+            // 3. Scambiamo le tabelle (non disponibile in tutte le versioni di MySQL)
+            $medooDB->pdo->beginTransaction();
+            
+            // Prima svuotiamo la tabella originale
+            $truncateQuery = "TRUNCATE TABLE prodotti";
+            $medooDB->pdo->exec($truncateQuery);
+            
+            // Poi copiamo i dati dalla tabella temporanea
+            $copyFromTempQuery = "INSERT INTO prodotti SELECT * FROM temp_prodotti";
+            $medooDB->pdo->exec($copyFromTempQuery);
+            
+            $rowsRestored = $medooDB->pdo->query("SELECT COUNT(*) FROM prodotti")->fetchColumn();
+            error_log("Copiati {$rowsRestored} record nella tabella prodotti");
+            
+            // Eliminiamo la tabella temporanea
+            $dropTempQuery = "DROP TABLE temp_prodotti";
+            $medooDB->pdo->exec($dropTempQuery);
+            
+            // Aggiorna lo stato del backup
+            $medooDB->update('prodotti_backups', [
+                'is_restored' => 1,
+                'restored_at' => date('Y-m-d H:i:s'),
+                'restored_by' => $_SESSION['admin']['id'] ?? 0
+            ], [
+                'id' => $backupId
+            ]);
+            
+            $medooDB->pdo->commit();
+            
+            return [
+                'success' => true,
+                'message' => "Ripristino completato con successo. Ripristinati {$rowsRestored} prodotti dal backup.",
+                'backup_id' => $backupId,
+                'rows_restored' => $rowsRestored
+            ];
+        } catch (Exception $e) {
+            // Verifica in modo più sicuro se una transazione è attiva
+            try {
+                if ($medooDB->pdo->inTransaction()) {
+                    $medooDB->pdo->rollBack();
+                }
+            } catch (Exception $rollbackEx) {
+                // Ignora eventuali errori nel rollback
+                error_log("Errore nel rollback della transazione: " . $rollbackEx->getMessage());
+            }
+            
+            // Pulisci eventuali tabelle temporanee
+            try {
+                $medooDB->pdo->exec("DROP TABLE IF EXISTS temp_prodotti");
+            } catch (Exception $cleanupEx) {
+                // Ignora errori nella pulizia
+            }
+            
+            throw $e;
         }
-        
-        // Transazione per garantire integrità
-        $medooDB->pdo->beginTransaction();
-        
-        // Svuota la tabella prodotti
-        $medooDB->pdo->exec("DELETE FROM prodotti");
-        error_log("Tabella prodotti svuotata");
-        
-        // Ripristina i dati dal backup
-        $query = "INSERT INTO prodotti (id, {$columnsString}) 
-                  SELECT 
-                      product_id, {$columnsString}
-                  FROM 
-                      prodotti_backup_data 
-                  WHERE 
-                      backup_id = :backup_id";
-        
-        $stmt = $medooDB->pdo->prepare($query);
-        $result = $stmt->execute([':backup_id' => $backupId]);
-        
-        if (!$result) {
-            error_log("Errore SQL nell'inserimento: " . print_r($stmt->errorInfo(), true));
-            throw new Exception("Errore nell'inserimento dei dati: " . $stmt->errorInfo()[2]);
-        }
-        
-        $rowCount = $stmt->rowCount();
-        error_log("Prodotti ripristinati: " . $rowCount);
-        
-        // Aggiorna lo stato del backup
-        $medooDB->update('prodotti_backups', [
-            'is_restored' => 1,
-            'restored_at' => date('Y-m-d H:i:s'),
-            'restored_by' => $_SESSION['admin']['id'] ?? 0
-        ], [
-            'id' => $backupId
-        ]);
-        
-        $medooDB->pdo->commit();
-        
-        error_log("Ripristino completato con successo. Backup ID: " . $backupId);
-        return true;
     } catch (Exception $e) {
-        // Rollback in caso di errore
-        if ($medooDB->pdo->inTransaction()) {
-            $medooDB->pdo->rollBack();
-            error_log("Eseguito rollback della transazione");
-        }
         error_log("Errore nel ripristino backup: " . $e->getMessage());
-        return false;
+        return [
+            'success' => false,
+            'message' => 'Errore durante il ripristino',
+            'error' => true,
+            'error_message' => $e->getMessage()
+        ];
     }
 }
 
@@ -326,5 +459,174 @@ function getAvailableBackups() {
     ], [
         'ORDER' => ['created_at' => 'DESC']
     ]);
+}
+
+/**
+ * Crea un backup della tabella prodotti esattamente come mostrato nell'immagine
+ * @return array Array con risultato dell'operazione
+ */
+function createProductsBackup() {
+    global $medooDB;
+    
+    try {
+        // Crea tabella backup se non esiste
+        createBackupTablesIfNotExist();
+        
+        // Verifica compatibilità delle strutture
+        $checkStructureResult = checkTableStructures();
+        if ($checkStructureResult !== true) {
+            return [
+                'success' => false,
+                'message' => $checkStructureResult,
+                'error' => true,
+                'error_message' => "Le colonne di prodotti sono diverse da prodotti_backup_data. " . $checkStructureResult
+            ];
+        }
+        
+        // Genera nome del backup
+        $backupName = 'Backup Manuale ' . date('d/m/Y H:i:s');
+        
+        // Inserisci record nella tabella di backup
+        $medooDB->insert('prodotti_backups', [
+            'backup_name' => $backupName,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $_SESSION['admin']['id'] ?? 0,
+            'note' => 'Backup manuale'
+        ]);
+        
+        $backupId = $medooDB->id();
+        
+        // Ottiene colonne dalla tabella prodotti per la copia
+        $columnsQuery = "SHOW COLUMNS FROM prodotti";
+        $stmt = $medooDB->pdo->prepare($columnsQuery);
+        $stmt->execute();
+        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        
+        // Crea l'elenco delle colonne escludendo 'id' (verrà mappato come product_id)
+        $columnsList = array_diff($columns, ['id']);
+        $columnsString = implode(', ', $columnsList);
+        
+        // Esegue l'operazione di copia come mostrato nell'immagine
+        // FROM 'prodotti' -> FROM 'prodotti_backup_data'
+        $query = "INSERT INTO prodotti_backup_data 
+                  (backup_id, product_id, {$columnsString}) 
+                  SELECT 
+                      {$backupId}, id, {$columnsString}
+                  FROM 
+                      prodotti";
+        
+        $stmt = $medooDB->pdo->prepare($query);
+        $result = $stmt->execute();
+        
+        if (!$result) {
+            return [
+                'success' => false,
+                'message' => 'Errore durante la creazione del backup',
+                'error' => true,
+                'error_message' => implode(" ", $stmt->errorInfo())
+            ];
+        }
+        
+        $rowCount = $stmt->rowCount();
+        
+        return [
+            'success' => true,
+            'message' => "Backup completato con successo. Copiati {$rowCount} prodotti nel backup ID: {$backupId}",
+            'backup_id' => $backupId,
+            'rows_copied' => $rowCount
+        ];
+    } catch (Exception $e) {
+        error_log("Errore nella creazione del backup: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'Errore durante la creazione del backup',
+            'error' => true,
+            'error_message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Corregge eventuali EAN vuoti o NULL nel backup
+ * @param int $backupId ID del backup da correggere
+ * @return array Risultato dell'operazione
+ */
+function fixEmptyEansInBackup($backupId) {
+    global $medooDB;
+    
+    try {
+        // Trova i record con EAN vuoti o NULL
+        $emptyEansQuery = "SELECT id, product_id FROM prodotti_backup_data 
+                          WHERE backup_id = :backup_id AND (ean = '' OR ean IS NULL)";
+        $stmt = $medooDB->pdo->prepare($emptyEansQuery);
+        $stmt->execute([':backup_id' => $backupId]);
+        $emptyEans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $fixed = 0;
+        
+        foreach ($emptyEans as $record) {
+            // Genera un EAN unico basato sull'ID del prodotto
+            $uniqueEan = 'FIXED-' . $backupId . '-' . $record['product_id'] . '-' . uniqid();
+            
+            // Aggiorna il record
+            $medooDB->update('prodotti_backup_data', 
+                ['ean' => $uniqueEan], 
+                ['id' => $record['id']]
+            );
+            
+            $fixed++;
+        }
+        
+        return [
+            'success' => true,
+            'fixed_count' => $fixed,
+            'message' => "Corretti $fixed record con EAN vuoti nel backup"
+        ];
+    } catch (Exception $e) {
+        error_log("Errore nella correzione degli EAN vuoti: " . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => true,
+            'error_message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Elimina un backup e i relativi dati
+ * @param int $backupId ID del backup da eliminare
+ * @return array Risultato dell'operazione
+ */
+function deleteBackup($backupId) {
+    global $medooDB;
+    
+    try {
+        // Verifica che il backup esista
+        $backup = $medooDB->get('prodotti_backups', '*', ['id' => $backupId]);
+        if (!$backup) {
+            return [
+                'success' => false,
+                'message' => "Backup ID {$backupId} non trovato",
+                'error' => true
+            ];
+        }
+        
+        // Elimina il backup (cascade eliminerà anche i dati correlati)
+        $medooDB->delete('prodotti_backups', ['id' => $backupId]);
+        
+        return [
+            'success' => true,
+            'message' => "Backup '{$backup['backup_name']}' eliminato con successo",
+            'backup_id' => $backupId
+        ];
+    } catch (Exception $e) {
+        error_log("Errore nell'eliminazione del backup: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => "Errore durante l'eliminazione del backup",
+            'error' => true,
+            'error_message' => $e->getMessage()
+        ];
+    }
 }
 ?>

@@ -383,11 +383,11 @@ function salva_immagine_da_url($ean, $image_url) {
             
             // Aggiorna il database se necessario
             try {
-                $medooDB->update(
-                    "prodotti",
+                        $medooDB->update(
+                            "prodotti",
                     ["immagine" => $filename."?".time()],
-                    ["ean" => $ean]
-                );
+                            ["ean" => $ean]
+                        );
             } catch (Exception $dbEx) {
                 // Ignorare errori DB, immagine salvata comunque
             }
@@ -754,7 +754,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         default:
             // Comportamento predefinito: recupera e salva una singola immagine
             $result = recupera_immagine_prodotto($ean, $description, 'single');
-            echo json_encode($result);
+    echo json_encode($result);
             break;
     }
 } else {

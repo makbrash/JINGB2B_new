@@ -12,6 +12,13 @@ const STATIC_ASSETS = [
   /*'https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap'*/
 ];
 
+// Percorsi da escludere completamente dalla gestione del SW
+const EXCLUDE_PATHS = [
+  '/admin_4569/', 
+  '/api/',
+  '/dati/'
+];
+
 // Evento di installazione
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -44,7 +51,15 @@ self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
   const url = event.request.url;
   
-    // Se la richiesta è per un'estensione Chrome, esci subito
+  // Verifica se il percorso deve essere escluso dalla gestione del SW
+  for (const excludePath of EXCLUDE_PATHS) {
+    if (requestUrl.pathname.startsWith(excludePath)) {
+      console.log('Percorso escluso dalla cache:', requestUrl.pathname);
+      return; // Non gestire questa richiesta, passa al browser normalmente
+    }
+  }
+  
+  // Se la richiesta è per un'estensione Chrome, esci subito
   if (url.startsWith('chrome-extension://')) {
     return; // Non facciamo nulla, non mettiamo in cache
   }
@@ -75,8 +90,6 @@ self.addEventListener('fetch', event => {
     );*/
     return; // Non eseguire altre logiche per questo request
   }
-  
-  
   
   // 1) Gestione immagini prodotti (in /public/catalogo/)
   if (requestUrl.pathname.startsWith('/public/catalogo/')) {
@@ -151,7 +164,7 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // 3) Gestione delle API
+  // 3) Gestione delle API - solo quelle non escluse dall'array EXCLUDE_PATHS
   if (requestUrl.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => {
